@@ -101,42 +101,41 @@ def crawl_gasnews(max_pages: int = 2) -> list[dict]:
 
     for page in range(1, max_pages + 1):
         url = GASNEWS_LIST_URL.format(page=page)
-        print(f"[가스신문] {page} 페이지 처리중 → {url}")
+        print(f"[가스신문] {page} 페이지 → {url}")
 
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
-
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # 구조: section#section-list → ul.type1 → li
         for li in soup.select("section#section-list ul.type1 > li"):
             title_a = li.select_one("h4.titles a")
             if not title_a:
                 continue
 
             title = title_a.get_text(strip=True)
-            link = BASE_URL + title_a.get("href", "")
+            article_url = BASE_URL + title_a.get("href", "")
 
             date_el = li.select_one("em.info.dated")
             date_str = normalize_gasnews_date(date_el.get_text(strip=True))
 
-            category = li.select_one("em.info.category")
-            category = category.get_text(strip=True) if category else ""
-
-            # 필터 → 제목에 수소 키워드 포함된 기사만 저장
+            # 필터링
             if not contains_hydrogen_keyword(title):
                 continue
+
+            # ★ 상세 본문 추출
+            body = extract_article_body(article_url)
 
             results.append({
                 "date": date_str,
                 "source": "가스신문",
                 "title": title,
-                "url": link,
-                "category": category,
+                "url": article_url,
+                "body": body,
                 "tags": make_tags(title)
             })
 
     return results
+
 
 
 # -----------------------------
@@ -148,11 +147,10 @@ def crawl_electimes(max_pages: int = 2) -> list[dict]:
 
     for page in range(1, max_pages + 1):
         url = ELECTIMES_LIST_URL.format(page=page)
-        print(f"[전기신문] {page} 페이지 처리중 → {url}")
+        print(f"[전기신문] {page} 페이지 → {url}")
 
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
-
         soup = BeautifulSoup(resp.text, "html.parser")
 
         for li in soup.select("#section-list ul.type > li.item"):
@@ -161,7 +159,7 @@ def crawl_electimes(max_pages: int = 2) -> list[dict]:
                 continue
 
             title = title_a.get_text(strip=True)
-            link = ELECTIMES_BASE_URL + title_a.get("href", "")
+            article_url = ELECTIMES_BASE_URL + title_a.get("href", "")
 
             date_el = li.select_one("em.replace-date")
             date_str = normalize_electimes_date(date_el.get_text(strip=True))
@@ -169,21 +167,26 @@ def crawl_electimes(max_pages: int = 2) -> list[dict]:
             summary_el = li.select_one("p.lead a.replace-read")
             summary = summary_el.get_text(strip=True) if summary_el else ""
 
-            # 필터 → 제목/요약에 수소 키워드 포함된 기사만
+            # 필터링
             combined = f"{title} {summary}".lower()
             if not contains_hydrogen_keyword(combined):
                 continue
+
+            # ★ 상세 본문 추출 추가
+            body = extract_article_body(article_url)
 
             results.append({
                 "date": date_str,
                 "source": "전기신문",
                 "title": title,
-                "url": link,
+                "url": article_url,
                 "summary": summary,
+                "body": body,
                 "tags": make_tags(title)
             })
 
     return results
+
 
 
 # -----------------------------
