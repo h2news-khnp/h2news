@@ -9,24 +9,22 @@ from bs4 import BeautifulSoup
 # 1. 기본 설정
 # -----------------------------
 
+# 가스신문
 BASE_URL = "https://www.gasnews.com"
-
-# 가스신문 전체기사 목록 (제목형)
 LIST_URL = (
     "https://www.gasnews.com/news/articleList.html"
     "?page={page}&sc_section_code=&view_type="  # 제목형(view_type 비움)
 )
 
+# 전기신문
 ELECTIMES_BASE_URL = "https://www.electimes.com"
 ELECTIMES_LIST_URL = (
     "https://www.electimes.com/news/articleList.html?page={page}&view_type=sm"
 )
 
 
-
 # -----------------------------
 # 2. 날짜 포맷 변환 함수
-#    예: "12.09 09:50" -> "2025-12-09"
 # -----------------------------
 
 def normalize_gasnews_short_date(raw: str) -> str:
@@ -50,8 +48,8 @@ def normalize_gasnews_short_date(raw: str) -> str:
     # 형식 안 맞으면 일단 오늘 날짜로
     return datetime.now().strftime("%Y-%m-%d")
 
+
 def normalize_electimes_date(raw: str) -> str:
-    from datetime import datetime
     raw = (raw or "").strip()
     if not raw:
         return datetime.now().strftime("%Y-%m-%d")
@@ -102,7 +100,7 @@ def make_tags(title: str) -> list[str]:
 
 
 # -----------------------------
-# 4. 가스신문 전체기사 목록 크롤링 함수
+# 4. 가스신문 전체기사 목록 크롤링
 # -----------------------------
 
 def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
@@ -155,7 +153,7 @@ def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
                 "source": "가스신문",
                 "title": title,
                 "url": link,
-                "summary": "",  # 필요시 상세페이지 본문 일부로 채워도 됨
+                "summary": "",
                 "tags": make_tags(title),
                 "category": category,
             }
@@ -163,6 +161,10 @@ def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
 
     return results
 
+
+# -----------------------------
+# 5. 전기신문 목록 크롤링
+# -----------------------------
 
 def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict]:
     results: list[dict] = []
@@ -203,6 +205,7 @@ def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict
                 else:
                     thumb_url = ELECTIMES_BASE_URL + thumb_src
 
+            # 수소/연료전지 관련 기사만 필터
             if only_hydrogen:
                 text_for_filter = f"{title} {summary}"
                 hydrogen_keywords = [
@@ -234,7 +237,7 @@ def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict
 
 
 # -----------------------------
-# 5. main 함수 (여기가 네가 말한 "4번" 위치)
+# 6. main 함수 (가스+전기 통합)
 # -----------------------------
 
 def main():
@@ -244,11 +247,13 @@ def main():
 
     articles: list[dict] = []
 
-    # 가스신문 전체기사에서 수소·연료전지 관련 기사 수집
-    # 페이지 범위는 필요에 따라 조정 (1~2페이지 정도부터 시작)
+    # 1) 가스신문
     articles.extend(crawl_gasnews_total(max_pages=2))
 
-    # 오늘 날짜 기사만 남기고 싶으면 필터
+    # 2) 전기신문
+    articles.extend(crawl_electimes(max_pages=2, only_hydrogen=True))
+
+    # 3) 오늘 날짜만 필터 (두 신문 모두에 적용)
     articles = [
         a for a in articles
         if (a.get("date") or "").startswith(today)
@@ -261,12 +266,9 @@ def main():
     print(f"{len(articles)}건 저장 완료: {out_file}")
 
 
-articles.extend(crawl_electimes(max_pages=2, only_hydrogen=True))
-
 # -----------------------------
-# 6. 스크립트 진입점
+# 7. 스크립트 진입점
 # -----------------------------
 
 if __name__ == "__main__":
     main()
-
