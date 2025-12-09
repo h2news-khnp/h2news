@@ -1,186 +1,231 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHNP H2 뉴스 아카이브</title>
+<meta charset="UTF-8">
+<title>KHNP Hydrogen News</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap for layout -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
-        body {
-            background: #f7f7f7;
-            font-family: "Pretendard", sans-serif;
-        }
+<style>
+    body {
+        background: #f5f7fa;
+        font-family: 'Segoe UI', Pretendard, sans-serif;
+    }
+    header {
+        background: #0b3c78;
+        color: white;
+        padding: 1.5rem 0;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .news-card {
+        background: white;
+        padding: 1.2rem 1.4rem;
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        transition: 0.2s;
+        height: 100%;
+    }
+    .news-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    }
+    .tags span {
+        display: inline-block;
+        background: #e7f1ff;
+        padding: 3px 8px;
+        margin-right: 6px;
+        margin-top: 4px;
+        border-radius: 6px;
+        color: #0b3c78;
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+    .filter-box {
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+</style>
 
-        header {
-            background: #0054A6;
-            color: white;
-            padding: 1.5rem 0;
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        .news-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1.25rem;
-            border: 1px solid #ddd;
-            transition: box-shadow .2s;
-            height: 100%;
-        }
-
-        .news-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .news-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            margin-bottom: .6rem;
-            color: #222;
-        }
-
-        .news-summary {
-            color: #555;
-            font-size: .9rem;
-            white-space: pre-line;
-            margin-bottom: 1rem;
-        }
-
-        .news-date {
-            font-size: .8rem;
-            color: #777;
-        }
-    </style>
 </head>
 <body>
 
 <header>
-    <h2>KHNP H₂ 뉴스 아카이브</h2>
-    <p class="mb-0">매일 자동 업데이트되는 수소 에너지 뉴스</p>
+    <h2 class="fw-bold">KHNP Hydrogen News Archive</h2>
+    <p class="mb-0">최신 수소 뉴스 아카이브 (자동 업데이트)</p>
 </header>
 
-<div class="container mb-5">
+<div class="container">
 
-    <!-- 날짜 필터 -->
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <input type="date" id="dateFilter" class="form-control">
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-primary w-100" onclick="applyFilter()">검색</button>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-secondary w-100" onclick="resetFilter()">전체보기</button>
-        </div>
-        <div class="col-md-4 text-end text-muted pt-2">
-            마지막 업데이트: <span id="last-updated">-</span>
+    <!-- 필터 박스 -->
+    <div class="filter-box">
+
+        <div class="row g-3">
+
+            <!-- 날짜 선택 -->
+            <div class="col-md-3">
+                <label class="form-label fw-bold">날짜 선택</label>
+                <select id="dateFilter" class="form-select">
+                    <option value="all">전체 날짜</option>
+                </select>
+            </div>
+
+            <!-- 태그 선택 -->
+            <div class="col-md-3">
+                <label class="form-label fw-bold">태그 필터</label>
+                <select id="tagFilter" class="form-select">
+                    <option value="all">전체 태그</option>
+                </select>
+            </div>
+
+            <!-- 검색 -->
+            <div class="col-md-6">
+                <label class="form-label fw-bold">검색</label>
+                <input type="text" id="searchInput" class="form-control" placeholder="제목, 요약, 태그 검색...">
+            </div>
+
         </div>
     </div>
 
-    <!-- 뉴스 카드 -->
-    <div class="row g-4" id="news-container"></div>
+    <!-- 뉴스 리스트 -->
+    <div class="row" id="newsList"></div>
 
-    <div class="text-center text-muted mt-4" id="status-message"></div>
 </div>
 
 <script>
-    let allArticles = [];
+// -------------------------------
+// JSON Load
+// -------------------------------
+let articles = [];
+let filtered = [];
 
-    // 날짜 형식 변환 YYYY-MM-DD → YYYY.MM.DD
-    function formatDate(dateStr) {
-        if (!dateStr) return "";
-        return dateStr.replace(/-/g, ".");
+async function loadJSON() {
+    const res = await fetch("data/latest.json?" + Date.now()); // 캐시방지
+    articles = await res.json();
+
+    // 날짜/태그 필터 옵션 자동 생성
+    buildDateOptions();
+    buildTagOptions();
+
+    // 첫 렌더링
+    filtered = [...articles];
+    render();
+}
+
+// -------------------------------
+// 날짜 필터 구성
+// -------------------------------
+function buildDateOptions() {
+    const dateSet = new Set(articles.map(a => a.date));
+    const dateFilter = document.getElementById("dateFilter");
+
+    dateSet.forEach(date => {
+        let op = document.createElement("option");
+        op.value = date;
+        op.textContent = date;
+        dateFilter.appendChild(op);
+    });
+}
+
+// -------------------------------
+// 태그 필터 구성
+// -------------------------------
+function buildTagOptions() {
+    const tagSet = new Set();
+
+    articles.forEach(a => {
+        (a.tags || []).forEach(t => tagSet.add(t));
+    });
+
+    const tagFilter = document.getElementById("tagFilter");
+
+    tagSet.forEach(tag => {
+        let op = document.createElement("option");
+        op.value = tag;
+        op.textContent = tag;
+        tagFilter.appendChild(op);
+    });
+}
+
+// -------------------------------
+// 렌더링
+// -------------------------------
+function render() {
+    const container = document.getElementById("newsList");
+    container.innerHTML = "";
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-center text-muted mt-5">검색된 기사가 없습니다.</p>`;
+        return;
     }
 
-    function renderNews(list) {
-        const container = document.getElementById("news-container");
-        container.innerHTML = "";
+    filtered.forEach(a => {
+        container.innerHTML += `
+            <div class="col-md-6 mb-4">
+                <div class="news-card">
+                    <h5 class="fw-bold mb-2">${a.title}</h5>
+                    <div class="text-muted mb-2">${a.date} · ${a.source}</div>
+                    <p class="mb-2">${a.subtitle}</p>
 
-        if (!list || list.length === 0) {
-            container.innerHTML = `
-                <div class="col-12 text-center text-muted py-5">
-                    표시할 기사가 없습니다.
+                    <div class="tags mb-2">
+                        ${a.tags.map(t => `<span onclick="filterByTag('${t}')">${t}</span>`).join("")}
+                    </div>
+
+                    <a href="${a.url}" target="_blank" class="text-primary fw-bold">기사보기 →</a>
                 </div>
-            `;
-            return;
+            </div>
+        `;
+    });
+}
+
+// -------------------------------
+// 필터 적용
+// -------------------------------
+function applyFilters() {
+    const dateVal = document.getElementById("dateFilter").value;
+    const tagVal = document.getElementById("tagFilter").value;
+    const keyword = document.getElementById("searchInput").value.toLowerCase();
+
+    filtered = articles.filter(a => {
+
+        let ok = true;
+
+        if (dateVal !== "all") ok = ok && a.date === dateVal;
+        if (tagVal !== "all") ok = ok && a.tags.includes(tagVal);
+
+        if (keyword) {
+            const block = `${a.title} ${a.subtitle} ${a.tags.join(" ")}`.toLowerCase();
+            ok = ok && block.includes(keyword);
         }
 
-        let html = "";
-        list.forEach(article => {
-            html += `
-                <div class="col-md-4">
-<div class="news-card">
-    <div class="news-title">${a.title}</div>
-    <div class="news-summary">${a.summary}</div>
+        return ok;
+    });
 
-    <div class="mt-2">
-        ${(a.tags || []).map(t => `<span class='badge bg-secondary me-1'>${t}</span>`).join("")}
-    </div>
+    render();
+}
 
-    <div class="d-flex justify-content-between mt-2">
-        <span class="news-date">${a.date}</span>
-        <a href="${a.url}" target="_blank">원문보기</a>
-    </div>
-</div>
+// -------------------------------
+// 태그 클릭해서 필터링
+// -------------------------------
+function filterByTag(tag) {
+    document.getElementById("tagFilter").value = tag;
+    applyFilters();
+}
 
-                </div>
-            `;
-        });
+// -------------------------------
+// 이벤트 연결
+// -------------------------------
+document.getElementById("dateFilter").addEventListener("change", applyFilters);
+document.getElementById("tagFilter").addEventListener("change", applyFilters);
+document.getElementById("searchInput").addEventListener("input", applyFilters);
 
-        container.innerHTML = html;
-    }
-
-    function applyFilter() {
-        const selected = document.getElementById("dateFilter").value;
-        if (!selected) return;
-
-        const filtered = allArticles.filter(a => a.date === selected);
-        renderNews(filtered);
-    }
-
-    function resetFilter() {
-        document.getElementById("dateFilter").value = "";
-        renderNews(allArticles);
-    }
-
-    async function loadNews() {
-        const status = document.getElementById("status-message");
-
-        try {
-            // 최신 JSON 우선
-            let res = await fetch("data/latest.json", { cache: "no-store" });
-
-            if (!res.ok) {
-                // 날짜 JSON으로 fallback
-                const today = new Date().toISOString().split("T")[0];
-                res = await fetch(`data/${today}.json`, { cache: "no-store" });
-            }
-
-            if (!res.ok) {
-                status.textContent = "크롤링된 뉴스 파일을 찾을 수 없습니다.";
-                return;
-            }
-
-            const data = await res.json();
-            allArticles = data;
-
-            // 최근 날짜 표시
-            if (data.length > 0) {
-                const latestDate = data[0].date;
-                document.getElementById("last-updated").textContent = latestDate;
-            }
-
-            renderNews(allArticles);
-
-        } catch (err) {
-            console.error(err);
-            status.textContent = "데이터 로드 중 오류 발생.";
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", loadNews);
+// -------------------------------
+loadJSON();
 </script>
 
 </body>
