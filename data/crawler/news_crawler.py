@@ -17,6 +17,12 @@ LIST_URL = (
     "?page={page}&sc_section_code=&view_type="  # 제목형(view_type 비움)
 )
 
+ELECTIMES_BASE_URL = "https://www.electimes.com"
+ELECTIMES_LIST_URL = (
+    "https://www.electimes.com/news/articleList.html?page={page}&view_type=sm"
+)
+
+
 
 # -----------------------------
 # 2. 날짜 포맷 변환 함수
@@ -42,6 +48,21 @@ def normalize_gasnews_short_date(raw: str) -> str:
             continue
 
     # 형식 안 맞으면 일단 오늘 날짜로
+    return datetime.now().strftime("%Y-%m-%d")
+
+def normalize_electimes_date(raw: str) -> str:
+    from datetime import datetime
+    raw = (raw or "").strip()
+    if not raw:
+        return datetime.now().strftime("%Y-%m-%d")
+
+    for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d"):
+        try:
+            dt = datetime.strptime(raw, fmt)
+            return dt.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
     return datetime.now().strftime("%Y-%m-%d")
 
 
@@ -143,6 +164,75 @@ def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
     return results
 
 
+def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict]:
+    results: list[dict] = []
+
+    for page in range(1, max_pages + 1):
+        list_url = ELECTIMES_LIST_URL.format(page=page)
+        print(f"[전기신문] page={page} GET {list_url}")
+
+        resp = requests.get(list_url, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        for li in soup.select("#section-list ul.type > li.item"):
+            title_a = li.select_one("div.view-cont h4.titles a.linked.replace-titles")
+            if not title_a:
+                continue
+
+            title = title_a.get_text(strip=True)
+            href = title_a.get("href") or ""
+            if href.startswith("/"):
+                url = ELECTIMES_BASE_URL + href
+            else:
+                url = href
+
+            date_el = li.select_one("div.view-cont em.replace-date")
+            raw_date = date_el.get_text(strip=True) if date_el else ""
+            date_str = normalize_electimes_date(raw_date)
+
+            summary_a = li.select_one("div.view-cont p.lead a.replace-read")
+            summary = summary_a.get_text(strip=True) if summary_a else ""
+
+            thumb_img = li.select_one("a.linked.thumb img.replace-thumb")
+            thumb_url = ""
+            if thumb_img and thumb_img.get("src"):
+                thumb_src = thumb_img.get("src")
+                if thumb_src.startswith("http"):
+                    thumb_url = thumb_src
+                else:
+                    thumb_url = ELECTIMES_BASE_URL + thumb_src
+
+            if only_hydrogen:
+                text_for_filter = f"{title} {summary}"
+                hydrogen_keywords = [
+                    "수소",
+                    "연료전지",
+                    "수전해",
+                    "전해조",
+                    "그린수소",
+                    "청정수소",
+                    "암모니아",
+                    "암모니아크래킹",
+                ]
+                if not any(k in text_for_filter for k in hydrogen_keywords):
+                    continue
+
+            article = {
+                "date": date_str,
+                "source": "전기신문",
+                "title": title,
+                "url": url,
+                "summary": summary,
+                "tags": make_tags(title),
+                "category": "",
+                "thumb": thumb_url,
+            }
+            results.append(article)
+
+    return results
+
+
 # -----------------------------
 # 5. main 함수 (여기가 네가 말한 "4번" 위치)
 # -----------------------------
@@ -171,9 +261,12 @@ def main():
     print(f"{len(articles)}건 저장 완료: {out_file}")
 
 
+articles.extend(crawl_electimes(max_pages=2, only_hydrogen=True))
+
 # -----------------------------
 # 6. 스크립트 진입점
 # -----------------------------
 
 if __name__ == "__main__":
     main()
+
