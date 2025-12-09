@@ -1,16 +1,153 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<title>H2 수소 뉴스</title>
-<link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHNP H2 News Archive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --khnp-blue: #0054A6; /* 한수원 느낌의 블루 */
+            --bg-light: #f8f9fa;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        }
+
+        /* 헤더 스타일 */
+        header {
+            background: linear-gradient(135deg, var(--khnp-blue), #003366);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header-title {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* 카드 뉴스 스타일 */
+        .news-card {
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: white;
+            height: 100%; /* 카드 높이 균일화 */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .news-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .card-img-top {
+            height: 180px;
+            object-fit: cover; /* 이미지가 찌그러지지 않고 꽉 차게 */
+            background-color: #e9ecef;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .news-date {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .card-text {
+            color: #555;
+            font-size: 0.95rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* 3줄 넘어가면 말줄임표 */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1; /* 내용이 적어도 버튼을 하단으로 밀어냄 */
+        }
+
+        .card-footer-custom {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .source-badge {
+            background-color: #e7f1ff;
+            color: var(--khnp-blue);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .btn-link-custom {
+            text-decoration: none;
+            color: var(--khnp-blue);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .btn-link-custom:hover {
+            text-decoration: underline;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 576px) {
+            .header-title {
+                font-size: 1.5rem;
+            }
+            .card-img-top {
+                height: 160px;
+            }
+        }
+    </style>
 </head>
-
 <body>
-<h1>📘 오늘의 수소 뉴스 카드뉴스</h1>
 
-<div id="news-container"></div>
+    <header class="text-center">
+        <div class="container">
+            <h1 class="header-title"><i class="fa-solid fa-atom me-2"></i>KHNP H2 News Archive</h1>
+            <p class="mb-0 opacity-75">수소 에너지 관련 최신 뉴스 아카이브</p>
+        </div>
+    </header>
 
-<script src="script.js"></script>
+    <main class="container mb-5">
+        <div class="row mb-4">
+            <div class="col-12 text-end text-muted small">
+                Last Updated: <span id="last-updated">2024-05-21</span>
+            </div>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="news-container">
+            </div>
+    </main>
+
+    <footer class="text-center py-4 text-muted small border-top">
+        &copy; 2024 KHNP H2 News Archive. Powered by GitHub Pages.
+    </footer>
+
+   
 </body>
 </html>
