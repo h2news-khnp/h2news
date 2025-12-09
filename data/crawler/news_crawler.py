@@ -234,69 +234,47 @@ def crawl_electimes(max_pages: int = 3) -> list[dict]:
 
 
 # -------------------------------------------------------
-# 10. 카드뉴스 (JSON 저장)
+# 10. 카드뉴스 + JSON 메인 로직
 # -------------------------------------------------------
 
 from cardnews_image import make_cardnews_image
 
+
 def main():
     today = datetime.now().strftime("%Y-%m-%d")
+
+    # GitHub Actions 기준: 작업 디렉토리 = 레포 루트
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    all_articles = []
+    # 1) 두 신문 크롤링
+    all_articles: list[dict] = []
     all_articles.extend(crawl_gasnews(max_pages=3))
     all_articles.extend(crawl_electimes(max_pages=3))
 
+    # 2) 오늘 날짜 기사만 필터링
     today_articles = [a for a in all_articles if a["date"] == today]
 
-    # -------------------------
-    # 카드뉴스 이미지 생성
-    # -------------------------
+    # 3) 카드뉴스 이미지 생성
     for idx, article in enumerate(today_articles):
-        # 카드뉴스용 텍스트 구성
         card_text = f"{article['title']}\n\n{article['summary']}"
-        image_filename = f"{today}_{idx+1}.png"
+        image_filename = f"{today}_{idx + 1}.png"
         image_path = data_dir / image_filename
 
         make_cardnews_image(card_text, image_path)
+        article["image"] = image_filename  # JSON에서 참조
 
-        article["image"] = image_filename  # JSON에 기록
-
-    # -------------------------
-    # JSON 저장
-    # -------------------------
+    # 4) JSON 저장
     out_path = data_dir / f"{today}.json"
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(today_articles, f, ensure_ascii=False, indent=2)
 
-    print(f"완료: {len(today_articles)}개 기사 처리 / 카드뉴스 PNG 생성 완료")
-
-
+    print(f"완료: {len(today_articles)}개 기사 처리 / 카드뉴스 PNG + JSON 저장 → {out_path}")
 
 
 # -------------------------------------------------------
-# 11. 메인 (JSON 저장)
+# 11. 엔트리 포인트
 # -------------------------------------------------------
-
-def main():
-    today = datetime.now().strftime("%Y-%m-%d")
-
-    data_dir = Path("data")
-    data_dir.mkdir(exist_ok=True)
-
-    all_articles = []
-    all_articles.extend(crawl_gasnews(max_pages=3))
-    all_articles.extend(crawl_electimes(max_pages=3))
-
-    today_articles = [a for a in all_articles if a["date"] == today]
-
-    out_path = data_dir / f"{today}.json"
-    with out_path.open("w", encoding="utf-8") as f:
-        json.dump(today_articles, f, ensure_ascii=False, indent=2)
-
-    print(f"🟢 저장 완료: {len(today_articles)}건 → {out_path}")
-
 
 if __name__ == "__main__":
     main()
