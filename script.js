@@ -1,125 +1,42 @@
-// 수소 뉴스 아카이브 메인 스크립트
+function loadNews() {
+    const today = new Date().toISOString().slice(0, 10);
+    const url = `data/${today}.json`;
 
-const newsListEl = document.getElementById("news-list");
-const dateInput = document.getElementById("date");
-const keywordInput = document.getElementById("keyword");
-const sourceSelect = document.getElementById("source");
-const applyBtn = document.getElementById("apply-filters");
+    fetch(url)
+        .then(res => res.json())
+        .then(list => {
+            const box = document.getElementById("news-container");
+            box.innerHTML = "";
 
-let allNews = []; // JSON 전체 데이터 저장용
+            list.forEach((a, idx) => {
+                const id = a.url;  // 기사 URL을 고유 ID로 사용
+                const likes = localStorage.getItem("like_" + id) || 0;
 
-// 오늘 날짜를 YYYY-MM-DD 형식으로 반환
-function getTodayString() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    const d = String(now.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
+                const card = document.createElement("div");
+                card.className = "card";
 
-// 뉴스 카드 렌더링
-function renderNewsList(items) {
-    newsListEl.innerHTML = "";
+                card.innerHTML = `
+                    <h2>${a.title}</h2>
+                    <p>${a.summary.replace(/\n/g, "<br>")}</p>
+                    <a href="${a.url}" target="_blank">원문 보기</a>
+                    <img src="data/${a.image}" class="card-img">
 
-    if (!items || items.length === 0) {
-        const div = document.createElement("div");
-        div.className = "news-card";
-        div.innerHTML = `
-            <p>조건에 해당하는 뉴스가 없습니다.</p>
-        `;
-        newsListEl.appendChild(div);
-        return;
-    }
+                    <button class="like-btn" onclick="addLike('${id}', this)">
+                        ❤️ 좋아요 <span>${likes}</span>
+                    </button>
+                `;
 
-    items.forEach((item) => {
-        const card = document.createElement("div");
-        card.className = "news-card";
-
-        const tagsHtml = (item.tags || [])
-            .map((t) => `<span class="tag">${t}</span>`)
-            .join("");
-
-        card.innerHTML = `
-            <div class="news-meta">
-                <span class="news-date">${item.date || ""}</span>
-                <span class="news-source">${item.source || ""}</span>
-            </div>
-            <h2 class="news-title">${item.title || ""}</h2>
-            <p class="news-summary">${item.summary || ""}</p>
-            <a class="news-link" href="${item.url || "#"}" target="_blank" rel="noopener noreferrer">
-                원문 보기
-            </a>
-            <div class="news-tags">
-                ${tagsHtml}
-            </div>
-        `;
-        newsListEl.appendChild(card);
-    });
-}
-
-// 필터 적용 로직
-function applyFilters() {
-    const dateValue = dateInput.value.trim();      // YYYY-MM-DD
-    const keyword = keywordInput.value.trim();     // 검색어
-    const source = sourceSelect.value.trim();      // 매체
-
-    let filtered = [...allNews];
-
-    if (dateValue) {
-        filtered = filtered.filter((n) => n.date === dateValue);
-    }
-
-    if (source) {
-        filtered = filtered.filter((n) => n.source === source);
-    }
-
-    if (keyword) {
-        const lower = keyword.toLowerCase();
-        filtered = filtered.filter((n) => {
-            const title = (n.title || "").toLowerCase();
-            const summary = (n.summary || "").toLowerCase();
-            return title.includes(lower) || summary.includes(lower);
+                box.appendChild(card);
+            });
         });
-    }
-
-    renderNewsList(filtered);
 }
 
-// JSON 데이터 로드
-async function loadNewsData(dateString) {
-    const filePath = `data/${dateString}.json`;
+function addLike(id, btn) {
+    let count = parseInt(localStorage.getItem("like_" + id) || 0);
+    count += 1;
+    localStorage.setItem("like_" + id, count);
 
-    try {
-        const res = await fetch(filePath);
-        if (!res.ok) {
-            throw new Error("파일 없음");
-        }
-        const data = await res.json();
-        allNews = data;
-        renderNewsList(allNews);
-    } catch (e) {
-        // 오늘 날짜 JSON이 없을 때: 안내 카드만 출력
-        allNews = [];
-        renderNewsList([]);
-    }
+    btn.querySelector("span").innerText = count;
 }
 
-// 초기화
-function init() {
-    const todayStr = getTodayString();
-
-    // 날짜 필터 기본값을 오늘로 설정
-    if (dateInput) {
-        dateInput.value = todayStr;
-    }
-
-    // 오늘 날짜 기준 JSON 로드
-    loadNewsData(todayStr);
-
-    // 버튼 이벤트 연결
-    if (applyBtn) {
-        applyBtn.addEventListener("click", applyFilters);
-    }
-}
-
-document.addEventListener("DOMContentLoaded", init);
+window.onload = loadNews;
