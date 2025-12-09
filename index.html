@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KHNP H2 News Archive</title>
 
+    <!-- Bootstrap & Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
@@ -13,10 +14,13 @@
             --khnp-blue: #0054A6;
             --bg-light: #f8f9fa;
         }
+
         body {
             background-color: var(--bg-light);
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
         }
+
+        /* 헤더 */
         header {
             background: linear-gradient(135deg, var(--khnp-blue), #003366);
             color: white;
@@ -24,27 +28,79 @@
             margin-bottom: 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
         .header-title {
             font-weight: 700;
+            letter-spacing: -0.5px;
         }
+
+        /* 카드 스타일 */
         .news-card {
             border: none;
             border-radius: 12px;
             overflow: hidden;
-            transition: 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             background: white;
             height: 100%;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
+
         .news-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
         }
-        .card-img-top {
-            height: 200px;
-            object-fit: cover;
-            background-color: #e9ecef;
+
+        /* 썸네일 영역: 실제 PNG가 없어도 예쁜 더미 영역 */
+        .card-thumb {
+            height: 180px;
+            background: radial-gradient(circle at top left, #00B4DB, #0083B0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 2.5rem;
         }
+
+        .card-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .news-date {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .card-text {
+            color: #555;
+            font-size: 0.9rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            white-space:pre-line; /* summary의 줄바꿈(\n) 유지 */
+            flex-grow: 1;
+        }
+
+        .card-footer-custom {
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .source-badge {
             background-color: #e7f1ff;
             color: var(--khnp-blue);
@@ -53,12 +109,29 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
-        .card-text {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            color: #555;
+
+        .btn-link-custom {
+            text-decoration: none;
+            color: var(--khnp-blue);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .btn-link-custom:hover {
+            text-decoration: underline;
+        }
+
+        .filter-badge {
+            cursor: pointer;
+        }
+
+        @media (max-width: 576px) {
+            .header-title {
+                font-size: 1.5rem;
+            }
+            .card-thumb {
+                height: 160px;
+            }
         }
     </style>
 </head>
@@ -66,86 +139,200 @@
 
 <header class="text-center">
     <div class="container">
-        <h1 class="header-title"><i class="fa-solid fa-atom me-2"></i>KHNP H2 News Archive</h1>
-        <p class="mb-0 opacity-75">수소 에너지 관련 최신 뉴스 아카이브</p>
+        <h1 class="header-title">
+            <i class="fa-solid fa-atom me-2"></i>KHNP H2 News Archive
+        </h1>
+        <p class="mb-0 opacity-75">가스신문·전기신문 기반 수소·연료전지 관련 자동 수집 뉴스</p>
     </div>
 </header>
 
 <main class="container mb-5">
-
-    <div class="row mb-4">
-        <div class="col-12 text-end text-muted small">
-            Last Updated: <span id="last-updated">Loading...</span>
+    <!-- 상단 메타 정보 -->
+    <div class="row align-items-center mb-3">
+        <div class="col-12 col-md-6 small text-muted">
+            Last Updated: <span id="last-updated">-</span>
+        </div>
+        <div class="col-12 col-md-6 text-md-end small mt-2 mt-md-0">
+            <span class="me-2">Source Filter:</span>
+            <span class="badge bg-secondary filter-badge" data-source="ALL">ALL</span>
+            <span class="badge bg-light text-dark border filter-badge" data-source="가스신문">가스신문</span>
+            <span class="badge bg-light text-dark border filter-badge" data-source="전기신문">전기신문</span>
         </div>
     </div>
 
+    <!-- 뉴스 카드 영역 -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="news-container">
+        <!-- JS로 채워짐 -->
     </div>
 
+    <!-- 로딩/에러 메시지 -->
+    <div class="row mt-4">
+        <div class="col-12 text-center small text-muted" id="status-message"></div>
+    </div>
 </main>
 
 <footer class="text-center py-4 text-muted small border-top">
-    &copy; 2024 KHNP H2 News Archive. Powered by GitHub Pages.
+    &copy; 2025 KHNP H2 News Archive · Powered by GitHub Pages &amp; GitHub Actions
 </footer>
 
 <script>
-async function loadNews() {
-    const container = document.getElementById("news-container");
-    container.innerHTML = `
-        <div class="col-12 text-center py-5">
-            <div class="spinner-border text-primary"></div>
-            <p class="text-muted mt-3">Loading latest hydrogen news…</p>
-        </div>
-    `;
+    let allArticles = [];
+    let currentSourceFilter = "ALL";
 
-    try {
-        // GitHub Pages에서는 상대경로 가능 → data/latest.json
-        const res = await fetch("data/latest.json?" + Date.now());
-        const articles = await res.json();
+    function formatDateLabel(isoDate) {
+        if (!isoDate) return "";
+        const parts = isoDate.split("-");
+        if (parts.length !== 3) return isoDate;
+        return `${parts[0]}.${parts[1]}.${parts[2]}`;
+    }
 
+    function getSourceEmoji(source) {
+        if (source === "가스신문") return "🧪";
+        if (source === "전기신문") return "⚡";
+        return "🔹";
+    }
+
+    function renderNews() {
+        const container = document.getElementById("news-container");
         container.innerHTML = "";
-        const today = new Date().toISOString().split("T")[0];
-        document.getElementById("last-updated").innerText = today;
 
-        articles.forEach(a => {
-            const cardImg = a.image ? `data/${a.image}` : "https://via.placeholder.com/600x400?text=No+Image";
+        let filtered = allArticles;
+        if (currentSourceFilter !== "ALL") {
+            filtered = allArticles.filter(a => a.source === currentSourceFilter);
+        }
 
-            const html = `
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-muted py-5">
+                    표시할 기사가 없습니다.
+                </div>
+            `;
+            return;
+        }
+
+        let html = "";
+        filtered.forEach(article => {
+            const dateLabel = formatDateLabel(article.date);
+            const emoji = getSourceEmoji(article.source);
+            const summarySafe = (article.summary || "").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+            const titleSafe = (article.title || "").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+            html += `
                 <div class="col">
                     <div class="news-card">
-                        <img src="${cardImg}" class="card-img-top" alt="뉴스 이미지" onerror="this.src='https://via.placeholder.com/600x400?text=Image+Error'">
+                        <div class="card-thumb">
+                            <span>${emoji}</span>
+                        </div>
                         <div class="card-body">
-                            <div class="text-muted small mb-1">
-                                <i class="far fa-calendar-alt me-1"></i>${a.date}
+                            <div class="news-date">
+                                <i class="far fa-calendar-alt me-1"></i>${dateLabel}
                             </div>
-                            <h5 class="card-title">${a.title}</h5>
-                            <p class="card-text">${a.summary}</p>
-
-                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <span class="source-badge">${a.source}</span>
-                                <a href="${a.url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    Read More <i class="fas fa-arrow-right ms-1"></i>
+                            <h5 class="card-title">${titleSafe}</h5>
+                            <p class="card-text">${summarySafe}</p>
+                            <div class="card-footer-custom">
+                                <span class="source-badge">${article.source}</span>
+                                <a href="${article.url}" target="_blank" class="btn-link-custom">
+                                    원문 보기 <i class="fas fa-arrow-right ms-1"></i>
                                 </a>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-            container.innerHTML += html;
         });
 
-    } catch (error) {
-        container.innerHTML = `
-            <div class="col-12 text-center text-danger py-5">
-                <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
-                <p>뉴스 데이터를 불러오는 중 문제가 발생했습니다.</p>
-            </div>
-        `;
-        console.error(error);
+        container.innerHTML = html;
     }
-}
 
-document.addEventListener("DOMContentLoaded", loadNews);
+    function setupFilterBadges() {
+        const badges = document.querySelectorAll(".filter-badge");
+        badges.forEach(badge => {
+            badge.addEventListener("click", () => {
+                currentSourceFilter = badge.getAttribute("data-source");
+
+                badges.forEach(b => {
+                    b.classList.remove("bg-secondary", "text-white");
+                    b.classList.add("bg-light", "text-dark", "border");
+                });
+
+                if (currentSourceFilter === "ALL") {
+                    badge.classList.remove("bg-light", "text-dark", "border");
+                    badge.classList.add("bg-secondary", "text-white");
+                } else {
+                    badge.classList.remove("bg-light", "text-dark", "border");
+                    badge.classList.add("bg-secondary", "text-white");
+                }
+
+                renderNews();
+            });
+        });
+
+        // 초기 ALL 강조
+        const allBadge = document.querySelector('.filter-badge[data-source="ALL"]');
+        allBadge.classList.remove("bg-light", "text-dark", "border");
+        allBadge.classList.add("bg-secondary", "text-white");
+    }
+
+    async function loadNews() {
+        const statusEl = document.getElementById("status-message");
+        const lastUpdatedEl = document.getElementById("last-updated");
+
+        statusEl.textContent = "데이터 로딩 중...";
+
+        try {
+            // 1순위: data/latest.json
+            let res = await fetch("data/latest.json", { cache: "no-store" });
+
+            if (!res.ok) {
+                // 2순위: 오늘 날짜 JSON 시도
+                const todayIso = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+                res = await fetch(`data/${todayIso}.json`, { cache: "no-store" });
+            }
+
+            if (!res.ok) {
+                statusEl.textContent = "크롤링된 JSON 파일을 찾지 못했습니다. (latest.json / YYYY-MM-DD.json 없음)";
+                lastUpdatedEl.textContent = "-";
+                return;
+            }
+
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                statusEl.textContent = "JSON은 열렸지만, 기사 목록이 비어 있습니다.";
+                lastUpdatedEl.textContent = "-";
+                allArticles = [];
+                renderNews();
+                return;
+            }
+
+            allArticles = data;
+
+            // last-updated는 JSON 안의 최대 날짜
+            const dates = allArticles
+                .map(a => a.date)
+                .filter(Boolean)
+                .sort()
+                .reverse();
+
+            if (dates.length > 0) {
+                lastUpdatedEl.textContent = dates[0];
+            } else {
+                lastUpdatedEl.textContent = new Date().toISOString().split("T")[0];
+            }
+
+            statusEl.textContent = "";
+            renderNews();
+
+        } catch (e) {
+            console.error(e);
+            statusEl.textContent = "데이터 로드 중 오류가 발생했습니다.";
+            lastUpdatedEl.textContent = "-";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        setupFilterBadges();
+        loadNews();
+    });
 </script>
 
 </body>
