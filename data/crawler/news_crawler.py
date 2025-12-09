@@ -5,9 +5,9 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
-# -------------------------------------------------------
-# 1. 기본 URL 설정
-# -------------------------------------------------------
+# =====================================================
+# 1. 기본 설정
+# =====================================================
 
 BASE_URL = "https://www.gasnews.com"
 GASNEWS_LIST_URL = (
@@ -16,29 +16,35 @@ GASNEWS_LIST_URL = (
 )
 
 ELECTIMES_BASE_URL = "https://www.electimes.com"
-ELECTIMES_LIST_URL = (
-    "https://www.electimes.com/news/articleList.html?page={page}&view_type=sm"
-)
+ELECTIMES_LIST_URL = "https://www.electimes.com/news/articleList.html?page={page}&view_type=sm"
 
-# -------------------------------------------------------
+# =====================================================
 # 2. 수소 관련 키워드
-# -------------------------------------------------------
+# =====================================================
 
 HYDROGEN_KEYWORDS = [
-    "수소","연료전지","그린수소","청정수소","블루수소","재생","전해조",
-    "수전해","PAFC","SOFC","MCFC","PEM","PPA","CCUS",
-    "암모니아","암모니아크래킹","ESS","배터리","액화수소",
-    "한수원","두산퓨얼셀","한화임팩트","현대차",
-    "HPS","HPC","REC","RPS"
+    "수소", "연료전지", "그린수소", "청정수소", "블루수소", "청정수소", "원자력",
+    "PAFC", "SOFC", "MCFC", "PEM", "재생", "배출권", "히트펌프", "도시가스", "구역전기", "PPA",
+    "수전해", "전해조", "PEMEC", "AEM", "알카라인", "분산", "NDC", "핑크수소",
+    "암모니아", "암모니아크래킹", "CCU", "CCUS", "기후부", "ESS", "배터리",
+    "수소생산", "수소저장", "액화수소",
+    "충전소", "수소버스", "수소차", "인프라",
+    "한수원", "두산퓨얼셀", "한화임팩트", "현대차",
+    "HPS", "HPC", "REC", "RPS"
 ]
 
 def contains_hydrogen_keyword(text: str) -> bool:
     text = text.lower()
     return any(kw.lower() in text for kw in HYDROGEN_KEYWORDS)
 
-# -------------------------------------------------------
-# 3. 날짜 변환 함수
-# -------------------------------------------------------
+def make_tags(text: str) -> list[str]:
+    tags = [kw for kw in HYDROGEN_KEYWORDS if kw.lower() in text.lower()]
+    return list(dict.fromkeys(tags))
+
+
+# =====================================================
+# 3. 날짜 처리
+# =====================================================
 
 def normalize_gasnews_date(raw: str) -> str:
     raw = raw.strip()
@@ -59,9 +65,10 @@ def normalize_electimes_date(raw: str) -> str:
             continue
     return datetime.now().strftime("%Y-%m-%d")
 
-# -------------------------------------------------------
+
+# =====================================================
 # 4. 본문 크롤링
-# -------------------------------------------------------
+# =====================================================
 
 def extract_article_body(url: str) -> str:
     try:
@@ -71,44 +78,70 @@ def extract_article_body(url: str) -> str:
         return ""
 
     soup = BeautifulSoup(resp.text, "html.parser")
-    body_el = soup.select_one("div#article-view-content-div, div.article-body, div#articleBody")
 
+    # 여러 신문사에 대응하는 본문 선택자
+    body_el = soup.select_one(
+        "div#article-view-content-div, div#articleBody, div.article-body, div#CmAdContent"
+    )
     if not body_el:
         return ""
 
-    texts = [x.get_text(" ", strip=True) for x in body_el.find_all(["p","span","div"])]
-    body = " ".join(texts)
-    return re.sub(r"\s+", " ", body).strip()
+    text = " ".join(x.get_text(" ", strip=True) for x in body_el.find_all(["p", "div", "span"]))
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"기자$", "", text)
 
-# -------------------------------------------------------
-# 5. 기사 요약 (3줄 요약)
-# -------------------------------------------------------
+    # 불필요한 홍보 문구 제거
+    text = re.sub(r"ⓒ.*?무단전재.*?$", "", text)
 
-def split_sentences(text: str) -> list[str]:
+    return text.strip()
+
+
+# =====================================================
+# 5. 한국어 문장 분리 (업그레이드)
+# =====================================================
+
+# 한국어 문장 종결 패턴 → "다.", "했다.", "됐다.", "한다.", "하였다."
+KOREAN_END = r"(다\.|했다\.|하였다\.|한다\.|됐다\.|되었다\.)"
+
+def split_sentences(text: str):
     if not text:
         return []
-    cleaned = re.sub(r"\s+", " ", text)
-    cleaned = cleaned.replace("다. ", "다.\n")
-    cleaned = cleaned.replace("다.", "다.\n")
-    parts = re.split(r"(?<=[.!?])\s+", cleaned)
-    sents = []
-    for p in parts:
-        for seg in p.split("\n"):
-            seg = seg.strip()
-            if seg:
-                sents.append(seg)
-    return sents
 
-def summarize_body(body: str, max_lines: int = 3) -> str:
-    sents = split_sentences(body)
-    return "\n".join(sents[:max_lines]) if sents else ""
+    # KOREAN_END 뒤에서 줄바꿈 삽입
+    modified = re.sub(KOREAN_END, r"\1\n", text)
 
-# -------------------------------------------------------
-# 6. 가스신문 크롤러
-# -------------------------------------------------------
+    # 영어 및 기타 문장부호 단위 분리
+    parts = re.split(r"(?<=[.!?])\s+", modified)
 
-def crawl_gasnews(max_pages: int = 3) -> list[dict]:
+    result = []
+    for part in parts:
+        for line in part.split("\n"):
+            cleaned = line.strip()
+            if len(cleaned) > 10:    # 너무 짧은 문장은 제거
+                result.append(cleaned)
+
+    return result
+
+
+# =====================================================
+# 6. 요약: 앞의 3문장만 추출
+# =====================================================
+
+def summarize_body(text: str, max_lines: int = 3) -> str:
+    sents = split_sentences(text)
+    if not sents:
+        return ""
+
+    return "\n".join(sents[:max_lines])
+
+
+# =====================================================
+# 7. 가스신문
+# =====================================================
+
+def crawl_gasnews(max_pages: int = 3):
     results = []
+
     for page in range(1, max_pages + 1):
         url = GASNEWS_LIST_URL.format(page=page)
         print(f"[가스신문] {page} → {url}")
@@ -118,36 +151,40 @@ def crawl_gasnews(max_pages: int = 3) -> list[dict]:
         soup = BeautifulSoup(resp.text, "html.parser")
 
         for li in soup.select("section#section-list ul.type1 > li"):
-            title_a = li.select_one("h4.titles a")
-            if not title_a:
+            title_el = li.select_one("h4.titles a")
+            if not title_el:
                 continue
 
-            title = title_a.get_text(strip=True)
+            title = title_el.get_text(strip=True)
             if not contains_hydrogen_keyword(title):
                 continue
 
-            article_url = BASE_URL + title_a.get("href", "")
-            date_str = normalize_gasnews_date(li.select_one("em.info.dated").get_text(strip=True))
+            link = BASE_URL + title_el.get("href")
 
-            body = extract_article_body(article_url)
-            summary_3 = summarize_body(body)
+            date = normalize_gasnews_date(li.select_one("em.info.dated").text)
+
+            body = extract_article_body(link)
+            summary = summarize_body(body)
 
             results.append({
-                "date": date_str,
+                "date": date,
                 "source": "가스신문",
                 "title": title,
-                "url": article_url,
-                "summary": summary_3,
-                "body": body
+                "url": link,
+                "summary": summary,
+                "tags": make_tags(title + " " + body)
             })
+
     return results
 
-# -------------------------------------------------------
-# 7. 전기신문 크롤러
-# -------------------------------------------------------
 
-def crawl_electimes(max_pages: int = 3) -> list[dict]:
+# =====================================================
+# 8. 전기신문
+# =====================================================
+
+def crawl_electimes(max_pages: int = 3):
     results = []
+
     for page in range(1, max_pages + 1):
         url = ELECTIMES_LIST_URL.format(page=page)
         print(f"[전기신문] {page} → {url}")
@@ -157,52 +194,55 @@ def crawl_electimes(max_pages: int = 3) -> list[dict]:
         soup = BeautifulSoup(resp.text, "html.parser")
 
         for li in soup.select("#section-list ul.type > li.item"):
-            title_a = li.select_one("h4.titles a.replace-titles")
-            if not title_a:
+            title_el = li.select_one("h4.titles a.replace-titles")
+            if not title_el:
                 continue
 
-            title = title_a.get_text(strip=True)
+            title = title_el.get_text(strip=True)
+
             summary_el = li.select_one("p.lead a.replace-read")
-            combined = f"{title} {summary_el.get_text(strip=True) if summary_el else ''}"
+            preview = summary_el.get_text(strip=True) if summary_el else ""
 
-            if not contains_hydrogen_keyword(combined):
+            if not contains_hydrogen_keyword(title + " " + preview):
                 continue
 
-            article_url = ELECTIMES_BASE_URL + title_a.get("href", "")
-            date_str = normalize_electimes_date(li.select_one("em.replace-date").get_text(strip=True))
+            link = ELECTIMES_BASE_URL + title_el.get("href")
+            date = normalize_electimes_date(li.select_one("em.replace-date").text)
 
-            body = extract_article_body(article_url)
-            summary_3 = summarize_body(body)
+            body = extract_article_body(link)
+            summary = summarize_body(body)
 
             results.append({
-                "date": date_str,
+                "date": date,
                 "source": "전기신문",
                 "title": title,
-                "url": article_url,
-                "summary": summary_3,
-                "body": body
+                "url": link,
+                "summary": summary,
+                "tags": make_tags(title + " " + body)
             })
+
     return results
 
-# -------------------------------------------------------
-# 8. 메인 실행 (JSON 생성)
-# -------------------------------------------------------
+
+# =====================================================
+# 9. 메인 실행
+# =====================================================
 
 def main():
     today = datetime.now().strftime("%Y-%m-%d")
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    print("=== H2 News Crawling Start ===")
+    print("=== H2 뉴스 자동 크롤링 시작 ===")
 
-    all_articles = crawl_gasnews() + crawl_electimes()
-    today_articles = [a for a in all_articles if a["date"] == today]
+    articles = crawl_gasnews() + crawl_electimes()
+    todays = [a for a in articles if a["date"] == today]
 
-    out_path = data_dir / f"{today}.json"
-    with out_path.open("w", encoding="utf-8") as f:
-        json.dump(today_articles, f, ensure_ascii=False, indent=2)
+    out = data_dir / f"{today}.json"
+    with out.open("w", encoding="utf-8") as f:
+        json.dump(todays, f, ensure_ascii=False, indent=2)
 
-    print(f"[완료] {len(today_articles)}개 기사 저장 → {out_path}")
+    print(f"[완료] {len(todays)}건 저장 → {out}")
 
 if __name__ == "__main__":
     main()
