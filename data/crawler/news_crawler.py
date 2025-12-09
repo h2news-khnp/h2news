@@ -131,7 +131,9 @@ def extract_article_body(url: str) -> str:
     soup = BeautifulSoup(resp.text, "html.parser")
 
     # 가스신문 / 전기신문 모두 공통적으로 article 본문 div 사용
-    body_el = soup.select_one("div#article-view-content-div, div.article-body, div#articleBody")
+    body_el = soup.select_one(
+        "div#article-view-content-div, div.article-body, div#articleBody"
+    )
     if not body_el:
         return ""
 
@@ -234,7 +236,7 @@ def crawl_electimes(max_pages: int = 3) -> list[dict]:
 
 
 # -------------------------------------------------------
-# 10. 카드뉴스 + JSON 메인 로직
+# 10. 카드뉴스 이미지 + JSON 저장 (메인)
 # -------------------------------------------------------
 
 from cardnews_image import make_cardnews_image
@@ -243,38 +245,33 @@ from cardnews_image import make_cardnews_image
 def main():
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # GitHub Actions 기준: 작업 디렉토리 = 레포 루트
+    # GitHub Actions에서 현재 작업 디렉토리는 리포지토리 루트
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    # 1) 두 신문 크롤링
     all_articles: list[dict] = []
     all_articles.extend(crawl_gasnews(max_pages=3))
     all_articles.extend(crawl_electimes(max_pages=3))
 
-    # 2) 오늘 날짜 기사만 필터링
+    # 오늘 기사만 필터링
     today_articles = [a for a in all_articles if a["date"] == today]
 
-    # 3) 카드뉴스 이미지 생성
+    # 카드뉴스 PNG 생성 + 파일명 JSON에 기록
     for idx, article in enumerate(today_articles):
         card_text = f"{article['title']}\n\n{article['summary']}"
-        image_filename = f"{today}_{idx + 1}.png"
+        image_filename = f"{today}_{idx+1}.png"
         image_path = data_dir / image_filename
 
         make_cardnews_image(card_text, image_path)
-        article["image"] = image_filename  # JSON에서 참조
+        article["image"] = image_filename
 
-    # 4) JSON 저장
+    # JSON 저장
     out_path = data_dir / f"{today}.json"
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(today_articles, f, ensure_ascii=False, indent=2)
 
-    print(f"완료: {len(today_articles)}개 기사 처리 / 카드뉴스 PNG + JSON 저장 → {out_path}")
+    print(f"완료: {len(today_articles)}건 → {out_path} / 카드뉴스 PNG 생성 완료")
 
-
-# -------------------------------------------------------
-# 11. 엔트리 포인트
-# -------------------------------------------------------
 
 if __name__ == "__main__":
     main()
