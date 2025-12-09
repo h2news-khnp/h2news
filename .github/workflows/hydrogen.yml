@@ -1,0 +1,34 @@
+name: Daily Hydrogen News Crawler
+
+on:
+  schedule:
+    - cron: "0 21 * * *"   # 한국 시간 아침 6시에 실행
+  workflow_dispatch:       # 수동 실행 버튼 활성화
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pillow
+
+      - name: Run crawler
+        run: python data/crawler/news_crawler.py
+
+      - name: Commit result
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Auto update" || echo "Nothing to commit"
+          git push
