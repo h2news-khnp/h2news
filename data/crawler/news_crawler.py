@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 from pathlib import Path
-
 import requests
 from bs4 import BeautifulSoup
 
@@ -9,11 +8,12 @@ from bs4 import BeautifulSoup
 # 1. 기본 설정
 # -----------------------------
 
-# 가스신문
 BASE_URL = "https://www.gasnews.com"
-LIST_URL = (
-    "https://www.gasnews.com/news/articleList.html"
-    "?page={page}&sc_section_code=&view_type="  # 제목형(view_type 비움)
+
+# 가스신문의 '수소·연료전지' 카테고리
+GASNEWS_LIST_URL = (
+    "https://www.gasnews.com/news/articleList.html?"
+    "page={page}&sc_section_code=S1N9&view_type="
 )
 
 # 전기신문
@@ -23,274 +23,197 @@ ELECTIMES_LIST_URL = (
 )
 
 # -----------------------------
-# 2. 공통 키워드(가스신문 + 전기신문 모두 사용)
+# 2. 수소 관련 키워드 (전 매체 공통)
 # -----------------------------
+HYDROGEN_KEYWORDS = [
+    # 기본
+    "수소", "연료전지", "그린수소", "청정수소", "블루수소",
+    "PAFC", "SOFC", "MCFC",
 
-hydrogen_keywords = [
-    # 기본 수소/연료전지
-    "수소", "연료전지", "수전해", "전해조", "그린수소", "청정수소",
+    # 수전해/전해조
+    "수전해", "전해조", "PEMEC", "AEM", "알카라인",
+
+    # 암모니아 기반
     "암모니아", "암모니아크래킹",
 
-    # 확장 키워드
-    "블루수소", "그레이수소", "수소생산", "수소공급", "수소전환",
-    "PEM", "AEM", "SOEC", "알칼라인",
-    "SOFC", "MCFC", "PAFC",
-    "분산전원", "발전소", "REC", "SMP",
+    # 인프라 & 정책
+    "수소생산", "수소저장", "액화수소",
+    "충전소", "수소버스", "수소차", "인프라",
 
-    "수소충전소", "액화수소", "수소저장", "수소 배관", "모빌리티",
+    # 기관/기업 키워드
+    "한수원", "두산퓨얼셀", "한화임팩트", "현대차",
 
-    "CHPS", "CCUS", "탄소중립", "RE100", "Net Zero",
-
-    # 기업 키워드
-    "두산퓨얼셀", "한화임팩트", "포스코", "현대차", "한수원",
+    # 기타
+    "HPS", "HPC", "REC", "RPS",
 ]
 
+def contains_hydrogen_keyword(text: str) -> bool:
+    """수소 관련 키워드 포함 여부를 검사."""
+    text = text.lower()
+    return any(kw.lower() in text for kw in HYDROGEN_KEYWORDS)
+
+
 # -----------------------------
-# 3. 날짜 포맷 변환 함수
+# 3. 날짜 변환 함수
 # -----------------------------
 
-def normalize_gasnews_short_date(raw: str) -> str:
+def normalize_gasnews_date(raw: str) -> str:
     """
-    가스신문: '12.09 09:50' 같은 형식을 'YYYY-MM-DD'로 변환.
-    연도는 실행 시점의 현재 연도를 사용.
+    ex) '12.09 09:50' → '2025-12-09'
     """
     raw = (raw or "").strip()
-    if not raw:
-        return datetime.now().strftime("%Y-%m-%d")
-
     year = datetime.now().year
 
-    # raw 예: "12.09 09:50" 또는 "12.09"
-    for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d"):
+    try:
+        return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d %H:%M").strftime("%Y-%m-%d")
+    except:
         try:
-            dt = datetime.strptime(f"{year}.{raw}", fmt)
-            return dt.strftime("%Y-%m-%d")
-        except ValueError:
-            continue
-
-    return datetime.now().strftime("%Y-%m-%d")
+            return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d").strftime("%Y-%m-%d")
+        except:
+            return datetime.now().strftime("%Y-%m-%d")
 
 
 def normalize_electimes_date(raw: str) -> str:
-    """
-    전기신문: '2025.12.09 16:26' 또는 '2025.12.09' 형태 -> 'YYYY-MM-DD'
-    """
-    raw = (raw or "").strip()
-    if not raw:
-        return datetime.now().strftime("%Y-%m-%d")
-
+    raw = raw.strip()
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d"):
         try:
-            dt = datetime.strptime(raw, fmt)
-            return dt.strftime("%Y-%m-%d")
-        except ValueError:
+            return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+        except:
             continue
-
     return datetime.now().strftime("%Y-%m-%d")
 
 
 # -----------------------------
-# 4. 태그 자동 부여 함수
+# 4. 태그 생성
 # -----------------------------
 
 def make_tags(title: str) -> list[str]:
-    title = title or ""
-    tags: list[str] = []
-
-    if "수소" in title:
-        tags.append("수소")
-    if "연료전지" in title or "PAFC" in title or "SOFC" in title or "MCFC" in title:
-        tags.append("연료전지")
-    if "수전해" in title or "전해조" in title or "PEMEC" in title or "알카라인" in title:
-        tags.append("수소생산")
-        tags.append("수전해")
-    if "암모니아" in title:
-        tags.append("수소생산")
-        tags.append("암모니아")
-    if "충전소" in title:
-        tags.append("수소인프라")
-        tags.append("충전소")
-    if any(k in title for k in ["법", "시행령", "시행규칙", "고시", "지침"]):
-        tags.append("정책")
-
-    if "한수원" in title:
-        tags.append("한수원")
-    if "두산퓨얼셀" in title:
-        tags.append("두산퓨얼셀")
-    if "한화임팩트" in title:
-        tags.append("한화임팩트")
-
-    # 중복 제거
-    return list(dict.fromkeys(tags))
+    tags = [kw for kw in HYDROGEN_KEYWORDS if kw.lower() in title.lower()]
+    return list(dict.fromkeys(tags))  # 중복 제거
 
 
 # -----------------------------
-# 5. 가스신문 전체기사 목록 크롤링
+# 5. 가스신문 크롤러
 # -----------------------------
 
-def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
-    """
-    가스신문 '전체기사' 목록에서
-    공통 hydrogen_keywords 기반으로 수소/에너지 관련 기사만 수집
-    """
-    results: list[dict] = []
+def crawl_gasnews(max_pages: int = 2) -> list[dict]:
+    results = []
 
     for page in range(1, max_pages + 1):
-        url = LIST_URL.format(page=page)
-        print(f"[가스신문 전체기사] 페이지 {page} 크롤링: {url}")
+        url = GASNEWS_LIST_URL.format(page=page)
+        print(f"[가스신문] {page} 페이지 처리중 → {url}")
 
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
 
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # section#section-list 안의 ul.type1 > li 가 기사 1건
+        # 구조: section#section-list → ul.type1 → li
         for li in soup.select("section#section-list ul.type1 > li"):
-            title_el = li.select_one("h4.titles a")
-            if not title_el:
-                continue
-
-            title = title_el.get_text(strip=True)
-            href = title_el.get("href") or ""
-
-            # 상대경로 -> 절대경로
-            if href.startswith("/"):
-                link = BASE_URL + href
-            else:
-                link = href
-
-            category_el = li.select_one("em.info.category")
-            category = category_el.get_text(strip=True) if category_el else ""
-
-            date_el = li.select_one("em.info.dated")
-            raw_date = date_el.get_text(strip=True) if date_el else ""
-            date_str = normalize_gasnews_short_date(raw_date)
-
-            # 제목 기준으로 hydrogen_keywords 필터
-            text_for_filter = title
-            if not any(k in text_for_filter for k in hydrogen_keywords):
-                # 카테고리가 '수소·연료전지'면 예외적으로 포함
-                if category != "수소·연료전지":
-                    continue
-
-            article = {
-                "date": date_str,
-                "source": "가스신문",
-                "title": title,
-                "url": link,
-                "summary": "",
-                "tags": make_tags(title),
-                "category": category,
-                "thumb": "",  # 가스신문 목록에는 썸네일이 따로 안 보이면 공란
-            }
-            results.append(article)
-
-    return results
-
-
-# -----------------------------
-# 6. 전기신문 전체기사(요약형) 크롤링
-# -----------------------------
-
-def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict]:
-    """
-    전기신문 '전체기사' 요약형(view_type=sm)에서
-    hydrogen_keywords 기반으로 필터링
-    """
-    results: list[dict] = []
-
-    for page in range(1, max_pages + 1):
-        list_url = ELECTIMES_LIST_URL.format(page=page)
-        print(f"[전기신문] page={page} GET {list_url}")
-
-        resp = requests.get(list_url, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        for li in soup.select("#section-list ul.type > li.item"):
-            title_a = li.select_one("div.view-cont h4.titles a.linked.replace-titles")
+            title_a = li.select_one("h4.titles a")
             if not title_a:
                 continue
 
             title = title_a.get_text(strip=True)
-            href = title_a.get("href") or ""
-            if href.startswith("/"):
-                url = ELECTIMES_BASE_URL + href
-            else:
-                url = href
+            link = BASE_URL + title_a.get("href", "")
 
-            date_el = li.select_one("div.view-cont em.replace-date")
-            raw_date = date_el.get_text(strip=True) if date_el else ""
-            date_str = normalize_electimes_date(raw_date)
+            date_el = li.select_one("em.info.dated")
+            date_str = normalize_gasnews_date(date_el.get_text(strip=True))
 
-            summary_a = li.select_one("div.view-cont p.lead a.replace-read")
-            summary = summary_a.get_text(strip=True) if summary_a else ""
+            category = li.select_one("em.info.category")
+            category = category.get_text(strip=True) if category else ""
 
-            thumb_img = li.select_one("a.linked.thumb img.replace-thumb")
-            thumb_url = ""
-            if thumb_img and thumb_img.get("src"):
-                thumb_src = thumb_img.get("src")
-                if thumb_src.startswith("http"):
-                    thumb_url = thumb_src
-                else:
-                    thumb_url = ELECTIMES_BASE_URL + thumb_src
+            # 필터 → 제목에 수소 키워드 포함된 기사만 저장
+            if not contains_hydrogen_keyword(title):
+                continue
 
-            if only_hydrogen:
-                text_for_filter = f"{title} {summary}"
-                if not any(k in text_for_filter for k in hydrogen_keywords):
-                    continue
-
-            article = {
+            results.append({
                 "date": date_str,
-                "source": "전기신문",
+                "source": "가스신문",
                 "title": title,
-                "url": url,
-                "summary": summary,
-                "tags": make_tags(title),
-                "category": "",
-                "thumb": thumb_url,
-            }
-            results.append(article)
+                "url": link,
+                "category": category,
+                "tags": make_tags(title)
+            })
 
     return results
 
 
 # -----------------------------
-# 7. main 함수
+# 6. 전기신문 크롤러
+# -----------------------------
+
+def crawl_electimes(max_pages: int = 2) -> list[dict]:
+    results = []
+
+    for page in range(1, max_pages + 1):
+        url = ELECTIMES_LIST_URL.format(page=page)
+        print(f"[전기신문] {page} 페이지 처리중 → {url}")
+
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        for li in soup.select("#section-list ul.type > li.item"):
+            title_a = li.select_one("h4.titles a.replace-titles")
+            if not title_a:
+                continue
+
+            title = title_a.get_text(strip=True)
+            link = ELECTIMES_BASE_URL + title_a.get("href", "")
+
+            date_el = li.select_one("em.replace-date")
+            date_str = normalize_electimes_date(date_el.get_text(strip=True))
+
+            summary_el = li.select_one("p.lead a.replace-read")
+            summary = summary_el.get_text(strip=True) if summary_el else ""
+
+            # 필터 → 제목/요약에 수소 키워드 포함된 기사만
+            combined = f"{title} {summary}".lower()
+            if not contains_hydrogen_keyword(combined):
+                continue
+
+            results.append({
+                "date": date_str,
+                "source": "전기신문",
+                "title": title,
+                "url": link,
+                "summary": summary,
+                "tags": make_tags(title)
+            })
+
+    return results
+
+
+# -----------------------------
+# 7. 메인 (JSON 저장)
 # -----------------------------
 
 def main():
     today = datetime.now().strftime("%Y-%m-%d")
+
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    articles: list[dict] = []
+    all_articles = []
 
-    # 가스신문 수집
-    gas_articles = crawl_gasnews_total(max_pages=2)
+    # 두 신문 동시 크롤링
+    all_articles.extend(crawl_gasnews(max_pages=3))
+    all_articles.extend(crawl_electimes(max_pages=3))
 
-    # 전기신문 수집
-    electimes_articles = crawl_electimes(max_pages=2, only_hydrogen=True)
+    # 오늘 기사만 필터링
+    today_articles = [a for a in all_articles if a["date"] == today]
 
-    articles.extend(gas_articles)
-    articles.extend(electimes_articles)
+    out_path = data_dir / f"{today}.json"
+    with out_path.open("w", encoding="utf-8") as f:
+        json.dump(today_articles, f, ensure_ascii=False, indent=2)
 
-    # 오늘 날짜 기사만 필터링하고 싶을 때
-    articles = [
-        a for a in articles
-        if (a.get("date") or "").startswith(today)
-    ]
-
-    out_file = data_dir / f"{today}.json"
-    with out_file.open("w", encoding="utf-8") as f:
-        json.dump(articles, f, ensure_ascii=False, indent=2)
-
-    print(f"{len(articles)}건 저장 완료: {out_file}")
+    print(f"\n🟢 저장 완료: {len(today_articles)}건 → {out_path}\n")
 
 
 # -----------------------------
-# 8. 스크립트 진입점
+# 8. 실행
 # -----------------------------
-
 if __name__ == "__main__":
     main()
