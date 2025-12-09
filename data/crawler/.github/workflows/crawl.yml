@@ -1,36 +1,39 @@
-name: Daily Hydrogen News Crawl
+name: Daily Hydrogen News Crawler
 
 on:
   schedule:
-    - cron: "0 21 * * *"  # 매일 한국시간 아침 6시쯤 (UTC 21시)
-  workflow_dispatch:      # 필요시 수동 실행도 가능
+    - cron: "0 0 * * *"   # 매일 00:00 (한국시간 09:00)
+  workflow_dispatch:      # 수동 실행 버튼도 추가
 
 jobs:
-  crawl:
+  build:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Repository Checkout
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      # 2) Python 환경 설정
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.10"
 
+      # 3) 필요한 패키지 설치
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
+      # 4) 크롤러 실행
       - name: Run crawler
-        run: |
-          python crawler/news_crawler.py
+        run: python new_crawler.py
 
-      - name: Commit and push data
+      # 5) GitHub Pages에 갱신된 파일 Commit & Push
+      - name: Commit and push updated files
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
           git add data/*.json
-          git commit -m "Update news data" || echo "No changes to commit"
+          git commit -m "Daily update: $(date '+%Y-%m-%d')" || echo "No changes to commit"
           git push
