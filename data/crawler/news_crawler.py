@@ -235,14 +235,43 @@ def main():
 
     print("=== H2 뉴스 자동 크롤링 시작 ===")
 
-    articles = crawl_gasnews() + crawl_electimes()
-    todays = [a for a in articles if a["date"] == today]
+    # 1) 원시 기사 수집
+    raw_articles = []
+    raw_articles.extend(crawl_gasnews(max_pages=3))
+    raw_articles.extend(crawl_electimes(max_pages=3))
 
-    out = data_dir / f"{today}.json"
-    with out.open("w", encoding="utf-8") as f:
-        json.dump(todays, f, ensure_ascii=False, indent=2)
+    # 2) URL 기준으로 중복 제거
+    unique_by_url = {}
+    for a in raw_articles:
+        key = a.get("url")
+        if not key:
+            continue
+        if key in unique_by_url:
+            # 이미 있으면, 더 긴 summary 쪽으로 갱신 정도는 선택사항
+            old = unique_by_url[key]
+            if len(a.get("summary", "")) > len(old.get("summary", "")):
+                unique_by_url[key] = a
+        else:
+            unique_by_url[key] = a
 
-    print(f"[완료] {len(todays)}건 저장 → {out}")
+    deduped_articles = list(unique_by_url.values())
+
+    # 3) 오늘 날짜만 필터
+    today_articles = [a for a in deduped_articles if a.get("date") == today]
+
+    # 4) 오늘 날짜 파일 (아카이브 용)
+    dated_json = data_dir / f"{today}.json"
+    with dated_json.open("w", encoding="utf-8") as f:
+        json.dump(today_articles, f, ensure_ascii=False, indent=2)
+
+    # 5) latest.json (프론트에서 이 파일만 사용)
+    latest_json = data_dir / "latest.json"
+    with latest_json.open("w", encoding="utf-8") as f:
+        json.dump(today_articles, f, ensure_ascii=False, indent=2)
+
+    print(f"[정리] 원시 {len(raw_articles)}건 → 중복 제거 {len(deduped_articles)}건")
+    print(f"[완료] 오늘 기사 {len(today_articles)}건 → {dated_json.name}, latest.json 저장")
+
 
 if __name__ == "__main__":
     main()
