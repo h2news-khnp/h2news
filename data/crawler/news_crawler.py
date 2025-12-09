@@ -187,10 +187,16 @@ def crawl_electimes(max_pages: int = 2) -> list[dict]:
 
     return results
 
+# -----------------------------
+# 7. 카드뉴스
+# -----------------------------
+
+from cardnews_image import make_cardnews_image
+
 
 
 # -----------------------------
-# 7. 메인 (JSON 저장)
+# 8. 메인 (JSON 저장)
 # -----------------------------
 
 def main():
