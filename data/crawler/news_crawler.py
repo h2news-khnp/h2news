@@ -22,14 +22,36 @@ ELECTIMES_LIST_URL = (
     "https://www.electimes.com/news/articleList.html?page={page}&view_type=sm"
 )
 
+# -----------------------------
+# 2. 공통 키워드(가스신문 + 전기신문 모두 사용)
+# -----------------------------
+
+hydrogen_keywords = [
+    # 기본 수소/연료전지
+    "수소", "연료전지", "수전해", "전해조", "그린수소", "청정수소",
+    "암모니아", "암모니아크래킹",
+
+    # 확장 키워드
+    "블루수소", "그레이수소", "수소생산", "수소공급", "수소전환",
+    "PEM", "AEM", "SOEC", "알칼라인",
+    "SOFC", "MCFC", "PAFC",
+    "분산전원", "발전소", "REC", "SMP",
+
+    "수소충전소", "액화수소", "수소저장", "수소 배관", "모빌리티",
+
+    "CHPS", "CCUS", "탄소중립", "RE100", "Net Zero",
+
+    # 기업 키워드
+    "두산퓨얼셀", "한화임팩트", "포스코", "현대차", "한수원",
+]
 
 # -----------------------------
-# 2. 날짜 포맷 변환 함수
+# 3. 날짜 포맷 변환 함수
 # -----------------------------
 
 def normalize_gasnews_short_date(raw: str) -> str:
     """
-    '12.09 09:50' 같은 형식을 'YYYY-MM-DD'로 변환.
+    가스신문: '12.09 09:50' 같은 형식을 'YYYY-MM-DD'로 변환.
     연도는 실행 시점의 현재 연도를 사용.
     """
     raw = (raw or "").strip()
@@ -38,6 +60,7 @@ def normalize_gasnews_short_date(raw: str) -> str:
 
     year = datetime.now().year
 
+    # raw 예: "12.09 09:50" 또는 "12.09"
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d"):
         try:
             dt = datetime.strptime(f"{year}.{raw}", fmt)
@@ -45,11 +68,13 @@ def normalize_gasnews_short_date(raw: str) -> str:
         except ValueError:
             continue
 
-    # 형식 안 맞으면 일단 오늘 날짜로
     return datetime.now().strftime("%Y-%m-%d")
 
 
 def normalize_electimes_date(raw: str) -> str:
+    """
+    전기신문: '2025.12.09 16:26' 또는 '2025.12.09' 형태 -> 'YYYY-MM-DD'
+    """
     raw = (raw or "").strip()
     if not raw:
         return datetime.now().strftime("%Y-%m-%d")
@@ -65,7 +90,7 @@ def normalize_electimes_date(raw: str) -> str:
 
 
 # -----------------------------
-# 3. 태그 자동 부여 함수
+# 4. 태그 자동 부여 함수
 # -----------------------------
 
 def make_tags(title: str) -> list[str]:
@@ -100,13 +125,13 @@ def make_tags(title: str) -> list[str]:
 
 
 # -----------------------------
-# 4. 가스신문 전체기사 목록 크롤링
+# 5. 가스신문 전체기사 목록 크롤링
 # -----------------------------
 
 def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
     """
     가스신문 '전체기사' 목록에서
-    수소·연료전지 관련 기사만 추려서 가져오는 크롤러.
+    공통 hydrogen_keywords 기반으로 수소/에너지 관련 기사만 수집
     """
     results: list[dict] = []
 
@@ -141,12 +166,12 @@ def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
             raw_date = date_el.get_text(strip=True) if date_el else ""
             date_str = normalize_gasnews_short_date(raw_date)
 
-            # 1) 카테고리가 '수소·연료전지'인 기사
-            # 2) 또는 제목에 '수소' / '연료전지' 포함된 기사만 사용
-            if category != "수소·연료전지" and not (
-                "수소" in title or "연료전지" in title
-            ):
-                continue
+            # 제목 기준으로 hydrogen_keywords 필터
+            text_for_filter = title
+            if not any(k in text_for_filter for k in hydrogen_keywords):
+                # 카테고리가 '수소·연료전지'면 예외적으로 포함
+                if category != "수소·연료전지":
+                    continue
 
             article = {
                 "date": date_str,
@@ -156,6 +181,7 @@ def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
                 "summary": "",
                 "tags": make_tags(title),
                 "category": category,
+                "thumb": "",  # 가스신문 목록에는 썸네일이 따로 안 보이면 공란
             }
             results.append(article)
 
@@ -163,10 +189,14 @@ def crawl_gasnews_total(max_pages: int = 1) -> list[dict]:
 
 
 # -----------------------------
-# 5. 전기신문 목록 크롤링
+# 6. 전기신문 전체기사(요약형) 크롤링
 # -----------------------------
 
 def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict]:
+    """
+    전기신문 '전체기사' 요약형(view_type=sm)에서
+    hydrogen_keywords 기반으로 필터링
+    """
     results: list[dict] = []
 
     for page in range(1, max_pages + 1):
@@ -205,19 +235,8 @@ def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict
                 else:
                     thumb_url = ELECTIMES_BASE_URL + thumb_src
 
-            # 수소/연료전지 관련 기사만 필터
             if only_hydrogen:
                 text_for_filter = f"{title} {summary}"
-                hydrogen_keywords = [
-                    "수소",
-                    "연료전지",
-                    "수전해",
-                    "전해조",
-                    "그린수소",
-                    "청정수소",
-                    "암모니아",
-                    "암모니아크래킹",
-                ]
                 if not any(k in text_for_filter for k in hydrogen_keywords):
                     continue
 
@@ -237,7 +256,7 @@ def crawl_electimes(max_pages: int = 1, only_hydrogen: bool = True) -> list[dict
 
 
 # -----------------------------
-# 6. main 함수 (가스+전기 통합)
+# 7. main 함수
 # -----------------------------
 
 def main():
@@ -247,13 +266,16 @@ def main():
 
     articles: list[dict] = []
 
-    # 1) 가스신문
-    articles.extend(crawl_gasnews_total(max_pages=2))
+    # 가스신문 수집
+    gas_articles = crawl_gasnews_total(max_pages=2)
 
-    # 2) 전기신문
-    articles.extend(crawl_electimes(max_pages=2, only_hydrogen=True))
+    # 전기신문 수집
+    electimes_articles = crawl_electimes(max_pages=2, only_hydrogen=True)
 
-    # 3) 오늘 날짜만 필터 (두 신문 모두에 적용)
+    articles.extend(gas_articles)
+    articles.extend(electimes_articles)
+
+    # 오늘 날짜 기사만 필터링하고 싶을 때
     articles = [
         a for a in articles
         if (a.get("date") or "").startswith(today)
@@ -267,7 +289,7 @@ def main():
 
 
 # -----------------------------
-# 7. 스크립트 진입점
+# 8. 스크립트 진입점
 # -----------------------------
 
 if __name__ == "__main__":
