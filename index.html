@@ -203,14 +203,27 @@ async function loadJSON() {
         buildDateOptions();
         buildTagOptions();
 
-        // 초기 렌더링
-        filtered = [...articles];
-        render();
+        // 🔹 가장 최신 날짜 구해서 그 날짜만 보이도록 설정
+        const latestDate = getLatestDate();
+        const dateSelect = document.getElementById("dateFilter");
+        if (latestDate) {
+            dateSelect.value = latestDate;   // 드롭다운을 최신 날짜로 맞추고
+        }
+
+        // 필터 적용 (최신 날짜만 표시)
+        applyFilters();
         
         document.getElementById('loading').style.display = 'none';
     } catch (e) {
         document.getElementById('loading').innerHTML = `<span class="text-danger">데이터 로드 실패<br>${e.message}</span>`;
     }
+}
+
+// 🔸 최신 날짜 계산 함수 추가
+function getLatestDate() {
+    const dateSet = new Set(articles.map(a => a.date));
+    const sortedDates = Array.from(dateSet).sort(); // 오름차순
+    return sortedDates.length ? sortedDates[sortedDates.length - 1] : null;
 }
 
 // 날짜 옵션 (내림차순 정렬)
@@ -219,6 +232,9 @@ function buildDateOptions() {
     const dateFilter = document.getElementById("dateFilter");
     // 날짜 정렬 (최신순)
     const sortedDates = Array.from(dateSet).sort().reverse();
+
+    // 기본 "전체" 옵션은 그대로 둔다
+    dateFilter.innerHTML = '<option value="all">날짜: 전체</option>';
 
     sortedDates.forEach(date => {
         let op = document.createElement("option");
@@ -234,6 +250,9 @@ function buildTagOptions() {
     articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
     
     const tagFilter = document.getElementById("tagFilter");
+    // 기본 "전체" 옵션
+    tagFilter.innerHTML = '<option value="all">태그: 전체</option>';
+
     // 가나다순 정렬
     const sortedTags = Array.from(tagSet).sort();
 
@@ -246,7 +265,7 @@ function buildTagOptions() {
 }
 
 // -------------------------------
-// 화면 렌더링 (핵심 수정 부분)
+// 화면 렌더링
 // -------------------------------
 function render() {
     const container = document.getElementById("newsList");
@@ -262,8 +281,7 @@ function render() {
     }
 
     filtered.forEach(a => {
-        // 태그 HTML 생성
-        const tagsHtml = a.tags.map(t => 
+        const tagsHtml = (a.tags || []).map(t => 
             `<span class="tag-badge" onclick="filterByTag('${t}')">#${t}</span>`
         ).join("");
 
@@ -277,7 +295,7 @@ function render() {
 
                     <h3 class="news-title">${a.title}</h3>
 
-                    <p class="news-subtitle">${a.subtitle}</p>
+                    <p class="news-subtitle">${a.subtitle || ""}</p>
 
                     <div class="card-bottom">
                         <div class="tags-wrapper">
@@ -305,9 +323,9 @@ function applyFilters() {
     filtered = articles.filter(a => {
         let ok = true;
         if (dateVal !== "all") ok = ok && a.date === dateVal;
-        if (tagVal !== "all") ok = ok && a.tags.includes(tagVal);
+        if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
         if (keyword) {
-            const block = `${a.title} ${a.subtitle} ${a.tags.join(" ")}`.toLowerCase();
+            const block = `${a.title || ""} ${a.subtitle || ""} ${(a.tags || []).join(" ")}`.toLowerCase();
             ok = ok && block.includes(keyword);
         }
         return ok;
@@ -320,7 +338,6 @@ function applyFilters() {
 function filterByTag(tag) {
     document.getElementById("tagFilter").value = tag;
     applyFilters();
-    // 사용자 경험을 위해 상단으로 스크롤 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -331,7 +348,6 @@ document.getElementById("searchInput").addEventListener("input", applyFilters);
 
 // 시작
 loadJSON();
-
 </script>
 </body>
 </html>
