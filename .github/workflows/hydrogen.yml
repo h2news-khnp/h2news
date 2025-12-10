@@ -1,9 +1,10 @@
 name: Daily Hydrogen News Crawler
 
 on:
-  workflow_dispatch:      # 수동 실행
+  workflow_dispatch:      # 수동 실행 버튼
   schedule:
-    - cron: "0 23 * * *"  # 매일 08:00 KST (UTC 23시)
+    # KST 08:00 = UTC 23:00
+    - cron: "0 23 * * *"
 
 jobs:
   crawler:
@@ -27,12 +28,26 @@ jobs:
         env:
           GITHUB_ACTIONS: "true"
         run: |
+          echo "=== 현재 디렉토리 구조 ==="
+          ls
+          echo "=== data 디렉토리 (before) ==="
+          ls -R data || echo "no data dir yet"
+          echo "=== 크롤러 실행 ==="
           python data/crawler/news_crawler.py
+          echo "=== data 디렉토리 (after) ==="
+          ls -R data
 
       - name: Commit & Push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/news_data.json data/latest.json
+
+          # data 폴더 전체를 한 번에 스테이징
+          git add data
+
+          # 상태 확인용 출력
+          git status
+
+          # 변경이 있을 때만 커밋
           git commit -m "Daily update" || echo "No changes to commit"
           git push
