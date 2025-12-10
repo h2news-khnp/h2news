@@ -1,12 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-import schedule
-import time
 from datetime import datetime
 from pathlib import Path
 import os
 import re
+import time
+
+# schedule 은 선택적 임포트 (없어도 동작)
+try:
+    import schedule  # type: ignore
+except ImportError:
+    schedule = None
 
 # ==========================================
 # 1. 설정
@@ -25,7 +30,6 @@ KEYWORDS = [
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
-NEWS_JSON_PATH = DATA_DIR / "news_data.json"
 LATEST_JSON_PATH = DATA_DIR / "latest.json"
 
 
@@ -39,7 +43,8 @@ def get_soup(url: str):
         res = requests.get(url, headers=headers, timeout=10)
         res.raise_for_status()
         return BeautifulSoup(res.text, "html.parser")
-    except:
+    except Exception as e:
+        print(f"[ERROR] {url} → {e}")
         return None
 
 
@@ -57,42 +62,45 @@ def normalize_date_common(raw: str):
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d", "%Y-%m-%d"):
         try:
             return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
-        except:
+        except ValueError:
             pass
 
     year = datetime.now().year
     try:
         return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d %H:%M").strftime("%Y-%m-%d")
-    except:
+    except Exception:
         try:
             return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d").strftime("%Y-%m-%d")
-        except:
+        except Exception:
             return datetime.now().strftime("%Y-%m-%d")
 
 
 # ==========================================
-# 3. 본문 추출 & 요약
+# 3. 본문 추출 & 요약 (subtitle 용 2줄)
 # ==========================================
 
-def extract_article_body(url):
+def extract_article_body(url: str) -> str:
     soup = get_soup(url)
     if not soup:
         return ""
 
     body_el = soup.select_one(
-        "div#article-view-content-div, div.article-body, div#articleBody, div.article-text"
+        "div#article-view-content-div, "
+        "div.article-body, "
+        "div#articleBody, "
+        "div.article-text"
     )
 
     if not body_el:
         texts = [p.get_text(" ", strip=True) for p in soup.select("p")]
     else:
-        texts = [x.get_text(" ", strip=True) for x in body_el.find_all(["p","span","div"])]
+        texts = [x.get_text(" ", strip=True) for x in body_el.find_all(["p", "span", "div"])]
 
     body = " ".join(texts)
     return re.sub(r"\s+", " ", body).strip()
 
 
-def split_sentences(text):
+def split_sentences(text: str):
     if not text:
         return []
 
@@ -101,17 +109,15 @@ def split_sentences(text):
 
     parts = re.split(r"(?<=[.!?])\s+", cleaned)
     sentences = []
-
     for p in parts:
         for seg in p.split("\n"):
             seg = seg.strip()
             if seg:
                 sentences.append(seg)
-
     return sentences
 
 
-def summarize_body(body: str, max_lines: int = 2):
+def summarize_body(body: str, max_lines: int = 2) -> str:
     sents = split_sentences(body)
     if not sents:
         return ""
@@ -143,10 +149,8 @@ def crawl_energy_news():
             if not link.startswith("http"):
                 link = base + link
 
-            date = normalize_date_common(
-                art.select_one("em.info.dated").get_text(strip=True)
-                if art.select_one("em.info.dated") else ""
-            )
+            date_raw = art.select_one("em.info.dated").get_text(strip=True) if art.select_one("em.info.dated") else ""
+            date = normalize_date_common(date_raw)
 
             tags = check_keywords(title)
             body = extract_article_body(link)
@@ -161,7 +165,7 @@ def crawl_energy_news():
                 "subtitle": summary,
                 "is_important": len(tags) > 0
             })
-        except:
+        except Exception:
             continue
 
     return results
@@ -192,10 +196,8 @@ def crawl_gas_news():
             if not link.startswith("http"):
                 link = base + link
 
-            date = normalize_date_common(
-                art.select_one("em.info.dated").get_text(strip=True)
-                if art.select_one("em.info.dated") else ""
-            )
+            date_raw = art.select_one("em.info.dated").get_text(strip=True) if art.select_one("em.info.dated") else ""
+            date = normalize_date_common(date_raw)
 
             tags = check_keywords(title)
             body = extract_article_body(link)
@@ -210,7 +212,7 @@ def crawl_gas_news():
                 "subtitle": summary,
                 "is_important": len(tags) > 0
             })
-        except:
+        except Exception:
             continue
 
     return results
@@ -237,10 +239,8 @@ def crawl_electric_news():
             if not link.startswith("http"):
                 link = base + link
 
-            date = normalize_date_common(
-                art.select_one("em.info.dated").get_text(strip=True)
-                if art.select_one("em.info.dated") else ""
-            )
+            date_raw = art.select_one("em.info.dated").get_text(strip=True) if art.select_one("em.info.dated") else ""
+            date = normalize_date_common(date_raw)
 
             tags = check_keywords(title)
             body = extract_article_body(link)
@@ -255,52 +255,58 @@ def crawl_electric_news():
                 "subtitle": summary,
                 "is_important": len(tags) > 0
             })
-        except:
+        except Exception:
             continue
 
     return results
 
 
 # ==========================================
-# 5. JSON 저장
+# 5. JSON 저장 (index.html 호환 latest.json)
 # ==========================================
 
 def job():
     print("\n=== 크롤링 시작 ===")
 
-    data = (
-        crawl_energy_news() +
-        crawl_gas_news() +
-        crawl_electric_news()
-    )
+    data = []
+    data.extend(crawl_energy_news())
+    data.extend(crawl_gas_news())
+    data.extend(crawl_electric_news())
 
-    # 중복 제거
+    # URL 기준 중복 제거
     dedup = {}
     for a in data:
         dedup[a["url"]] = a
     articles = list(dedup.values())
 
-    # 중요도 정렬
+    # 중요 기사 우선 정렬
     articles.sort(key=lambda x: x["is_important"], reverse=True)
 
-    # latest.json (index.html이 읽는 파일)
+    # index.html 이 바로 사용하는 latest.json
     with LATEST_JSON_PATH.open("w", encoding="utf-8") as f:
         json.dump(articles, f, ensure_ascii=False, indent=2)
 
-    print(f"[완료] {len(articles)}건 저장 → latest.json")
+    print(f"[완료] {len(articles)}건 저장 → {LATEST_JSON_PATH}")
 
 
 # ==========================================
-# 6. 실행
+# 6. 실행 엔트리
 # ==========================================
 
 if __name__ == "__main__":
+    # GitHub Actions에서는 한 번만 실행
     if os.getenv("GITHUB_ACTIONS") == "true":
         job()
     else:
+        # 로컬 실행: 스케줄 모듈이 있으면 08:00 / 15:00 자동 실행
         job()
-        schedule.every().day.at("08:00").do(job)
-        schedule.every().day.at("15:00").do(job)
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
+        if schedule is not None:
+            print("로컬에서 08:00 / 15:00 자동 실행 모드입니다.")
+            schedule.every().day.at("08:00").do(job)
+            schedule.every().day.at("15:00").do(job)
+            while True:
+                schedule.run_pending()
+                time.sleep(60)
+        else:
+            print("스케줄 모듈이 없어 한 번만 실행했습니다. "
+                  "로컬 자동 실행을 원하면 `pip install schedule` 후 다시 실행해줘.")
