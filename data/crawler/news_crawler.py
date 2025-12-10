@@ -18,7 +18,7 @@ KEYWORDS = [
     "수소생산", "수소저장", "액화수소",
     "충전소", "수소버스", "수소차", "인프라",
     "한수원", "두산퓨얼셀", "한화임팩트", "현대차",
-    "HPS", "HPC", "REC", "RPS"
+    "HPS", "HPC", "REC", "RPS",
 ]
 
 DATA_DIR = Path("data")
@@ -152,10 +152,18 @@ def crawl_energy_news():
     if not soup:
         return results
 
-    articles = soup.select("#section-list .type1 li")
+    # 1차: 기존 패턴
+    articles = soup.select("section#section-list ul.type1 > li")
+    # 2차: 예비 패턴
+    if not articles:
+        articles = soup.select("#section-list .type1 li")
+    # 3차: 최후의 안전장치
+    if not articles:
+        articles = soup.select("#section-list li")
+
     for art in articles:
         try:
-            title_tag = art.select_one("h2.titles a")
+            title_tag = art.select_one("h2.titles a") or art.select_one("h4.titles a")
             if not title_tag:
                 continue
 
@@ -180,11 +188,12 @@ def crawl_energy_news():
                 "date": date,
                 "tags": tags,
                 "subtitle": summary,
-                "is_important": len(tags) > 0
+                "is_important": len(tags) > 0,
             })
         except Exception:
             continue
 
+    print(f"   [에너지신문] 수집 {len(results)}건")
     return results
 
 
@@ -199,10 +208,11 @@ def crawl_gas_news():
     if not soup:
         return results
 
-    articles = soup.select("#section-list .type1 li")
+    articles = soup.select("section#section-list ul.type1 > li")
     if not articles:
-        # 혹시 구조 변경 대비
-        articles = soup.select(".article-list .list-block")
+        articles = soup.select("#section-list .type1 li")
+    if not articles:
+        articles = soup.select("#section-list li")
 
     for art in articles:
         try:
@@ -231,11 +241,12 @@ def crawl_gas_news():
                 "date": date,
                 "tags": tags,
                 "subtitle": summary,
-                "is_important": len(tags) > 0
+                "is_important": len(tags) > 0,
             })
         except Exception:
             continue
 
+    print(f"   [가스신문] 수집 {len(results)}건")
     return results
 
 
@@ -250,10 +261,21 @@ def crawl_electric_news():
     if not soup:
         return results
 
-    articles = soup.select("#section-list .type1 li")
+    # 1차: 실제 전기신문 구조에 맞춘 패턴
+    articles = soup.select("#section-list ul.type > li.item")
+    # 2차: 예비 패턴
+    if not articles:
+        articles = soup.select("section#section-list ul.type1 > li")
+    if not articles:
+        articles = soup.select("#section-list .type1 li")
+    if not articles:
+        articles = soup.select("#section-list li")
+
     for art in articles:
         try:
-            title_tag = art.select_one("h2.titles a") or art.select_one("h4.titles a")
+            title_tag = art.select_one("h4.titles a.replace-titles") \
+                        or art.select_one("h4.titles a") \
+                        or art.select_one("h2.titles a")
             if not title_tag:
                 continue
 
@@ -262,7 +284,7 @@ def crawl_electric_news():
             if not link.startswith("http"):
                 link = base_url + link
 
-            date_tag = art.select_one("em.info.dated")
+            date_tag = art.select_one("em.replace-date") or art.select_one("em.info.dated")
             raw_date = date_tag.get_text(strip=True) if date_tag else ""
             date = normalize_date_common(raw_date)
 
@@ -278,18 +300,17 @@ def crawl_electric_news():
                 "date": date,
                 "tags": tags,
                 "subtitle": summary,
-                "is_important": len(tags) > 0
+                "is_important": len(tags) > 0,
             })
         except Exception:
             continue
 
+    print(f"   [전기신문] 수집 {len(results)}건")
     return results
 
 
 # ==========================================
 # 5. 통합 실행 + latest.json 저장
-#    latest.json 구조는 index.html과 100% 호환:
-#    [{ title, subtitle, date, source, url, tags }, ...]
 # ==========================================
 
 def job():
