@@ -1,10 +1,14 @@
 name: Daily Hydrogen News Crawler
 
 on:
-  workflow_dispatch:      # 수동 실행 버튼
+  workflow_dispatch:
   schedule:
     # KST 08:00 = UTC 23:00
     - cron: "0 23 * * *"
+
+# 🔹 GITHUB_TOKEN 권한을 명시적으로 부여
+permissions:
+  contents: write
 
 jobs:
   crawler:
@@ -42,12 +46,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # data 폴더 전체를 한 번에 스테이징
+          # data 폴더 전체를 스테이징
           git add data
 
-          # 상태 확인용 출력
           git status
 
-          # 변경이 있을 때만 커밋
+          # 변경 있을 때만 커밋
           git commit -m "Daily update" || echo "No changes to commit"
           git push
