@@ -5,13 +5,6 @@ from datetime import datetime
 from pathlib import Path
 import os
 import re
-import time
-
-# schedule 은 선택적 임포트 (없어도 동작)
-try:
-    import schedule  # type: ignore
-except ImportError:
-    schedule = None
 
 # ==========================================
 # 1. 설정
@@ -49,22 +42,29 @@ def get_soup(url: str):
 
 
 def check_keywords(title: str):
+    """제목에 포함된 키워드를 태그로 리턴"""
     lower = title.lower()
     return [kw for kw in KEYWORDS if kw.lower() in lower]
 
 
 def normalize_date_common(raw: str):
+    """
+    여러 신문 공통 날짜 파서
+    '2025.12.10', '2025.12.10 09:30', '2025-12-10', '12.10 09:30' 등 대응
+    """
     if not raw:
         return datetime.now().strftime("%Y-%m-%d")
 
     raw = raw.strip()
 
+    # 연도까지 있는 경우
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d", "%Y-%m-%d"):
         try:
             return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
         except ValueError:
             pass
 
+    # 연도가 없는 케이스
     year = datetime.now().year
     try:
         return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d %H:%M").strftime("%Y-%m-%d")
@@ -76,10 +76,11 @@ def normalize_date_common(raw: str):
 
 
 # ==========================================
-# 3. 본문 추출 & 요약 (subtitle 용 2줄)
+# 3. 본문 추출 & 요약 (subtitle 2줄)
 # ==========================================
 
 def extract_article_body(url: str) -> str:
+    """기사 상세 본문 텍스트 추출 (3개 신문 공통 대응)"""
     soup = get_soup(url)
     if not soup:
         return ""
@@ -90,71 +91,87 @@ def extract_article_body(url: str) -> str:
         "div#articleBody, "
         "div.article-text"
     )
-
     if not body_el:
         texts = [p.get_text(" ", strip=True) for p in soup.select("p")]
     else:
         texts = [x.get_text(" ", strip=True) for x in body_el.find_all(["p", "span", "div"])]
 
     body = " ".join(texts)
-    return re.sub(r"\s+", " ", body).strip()
+    body = re.sub(r"\s+", " ", body).strip()
+    return body
 
 
 def split_sentences(text: str):
+    """lookbehind 문제 없는 한국어 + 영어 혼합 문장 분리"""
     if not text:
         return []
 
     cleaned = re.sub(r"\s+", " ", text).strip()
-    cleaned = cleaned.replace("다. ", "다.\n").replace("다.", "다.\n")
 
+    # '다.' 기준으로 줄바꿈
+    cleaned = cleaned.replace("다. ", "다.\n")
+    cleaned = cleaned.replace("다.", "다.\n")
+
+    # 영어권 문장부호 기준 분리
     parts = re.split(r"(?<=[.!?])\s+", cleaned)
+
     sentences = []
     for p in parts:
         for seg in p.split("\n"):
             seg = seg.strip()
             if seg:
                 sentences.append(seg)
+
     return sentences
 
 
 def summarize_body(body: str, max_lines: int = 2) -> str:
+    """본문에서 앞쪽 문장 기준으로 N줄 요약 (index.html에서는 subtitle로 사용)"""
+    if not body:
+        return ""
+
     sents = split_sentences(body)
     if not sents:
         return ""
+
     return "\n".join(sents[:max_lines])
 
 
 # ==========================================
-# 4. 개별 신문 크롤러
+# 4. 각 신문별 크롤러
 # ==========================================
 
 def crawl_energy_news():
-    print("[에너지신문] 시작")
+    """에너지신문"""
+    print("   [에너지신문] 크롤링 시작...")
     results = []
-    base = "https://www.energy-news.co.kr"
-    url = f"{base}/news/articleList.html?view_type=sm"
+    base_url = "https://www.energy-news.co.kr"
+    url = f"{base_url}/news/articleList.html?view_type=sm"
 
     soup = get_soup(url)
     if not soup:
         return results
 
-    for art in soup.select("#section-list .type1 li"):
+    articles = soup.select("#section-list .type1 li")
+    for art in articles:
         try:
-            t = art.select_one("h2.titles a")
-            if not t:
+            title_tag = art.select_one("h2.titles a")
+            if not title_tag:
                 continue
 
-            title = t.get_text(strip=True)
-            link = t["href"]
+            title = title_tag.get_text(strip=True)
+            link = title_tag["href"]
             if not link.startswith("http"):
-                link = base + link
+                link = base_url + link
 
-            date_raw = art.select_one("em.info.dated").get_text(strip=True) if art.select_one("em.info.dated") else ""
-            date = normalize_date_common(date_raw)
+            date_tag = art.select_one("em.info.dated")
+            raw_date = date_tag.get_text(strip=True) if date_tag else ""
+            date = normalize_date_common(raw_date)
 
             tags = check_keywords(title)
+
             body = extract_article_body(link)
-            summary = summarize_body(body, 2).replace("\n", " ")
+            summary = summarize_body(body, max_lines=2).replace("\n", " ")
 
             results.append({
                 "source": "에너지신문",
@@ -172,10 +189,11 @@ def crawl_energy_news():
 
 
 def crawl_gas_news():
-    print("[가스신문] 시작")
+    """가스신문"""
+    print("   [가스신문] 크롤링 시작...")
     results = []
-    base = "https://www.gasnews.com"
-    url = f"{base}/news/articleList.html?view_type=sm"
+    base_url = "https://www.gasnews.com"
+    url = f"{base_url}/news/articleList.html?view_type=sm"
 
     soup = get_soup(url)
     if not soup:
@@ -183,25 +201,28 @@ def crawl_gas_news():
 
     articles = soup.select("#section-list .type1 li")
     if not articles:
+        # 혹시 구조 변경 대비
         articles = soup.select(".article-list .list-block")
 
     for art in articles:
         try:
-            t = art.select_one("h2.titles a") or art.select_one("h4.titles a")
-            if not t:
+            title_tag = art.select_one("h2.titles a") or art.select_one("h4.titles a")
+            if not title_tag:
                 continue
 
-            title = t.get_text(strip=True)
-            link = t["href"]
+            title = title_tag.get_text(strip=True)
+            link = title_tag["href"]
             if not link.startswith("http"):
-                link = base + link
+                link = base_url + link
 
-            date_raw = art.select_one("em.info.dated").get_text(strip=True) if art.select_one("em.info.dated") else ""
-            date = normalize_date_common(date_raw)
+            date_tag = art.select_one("em.info.dated")
+            raw_date = date_tag.get_text(strip=True) if date_tag else ""
+            date = normalize_date_common(raw_date)
 
             tags = check_keywords(title)
+
             body = extract_article_body(link)
-            summary = summarize_body(body, 2).replace("\n", " ")
+            summary = summarize_body(body, max_lines=2).replace("\n", " ")
 
             results.append({
                 "source": "가스신문",
@@ -219,32 +240,36 @@ def crawl_gas_news():
 
 
 def crawl_electric_news():
-    print("[전기신문] 시작")
+    """전기신문"""
+    print("   [전기신문] 크롤링 시작...")
     results = []
-    base = "https://www.electimes.com"
-    url = f"{base}/news/articleList.html?view_type=sm"
+    base_url = "https://www.electimes.com"
+    url = f"{base_url}/news/articleList.html?view_type=sm"
 
     soup = get_soup(url)
     if not soup:
         return results
 
-    for art in soup.select("#section-list .type1 li"):
+    articles = soup.select("#section-list .type1 li")
+    for art in articles:
         try:
-            t = art.select_one("h2.titles a") or art.select_one("h4.titles a")
-            if not t:
+            title_tag = art.select_one("h2.titles a") or art.select_one("h4.titles a")
+            if not title_tag:
                 continue
 
-            title = t.get_text(strip=True)
-            link = t["href"]
+            title = title_tag.get_text(strip=True)
+            link = title_tag["href"]
             if not link.startswith("http"):
-                link = base + link
+                link = base_url + link
 
-            date_raw = art.select_one("em.info.dated").get_text(strip=True) if art.select_one("em.info.dated") else ""
-            date = normalize_date_common(date_raw)
+            date_tag = art.select_one("em.info.dated")
+            raw_date = date_tag.get_text(strip=True) if date_tag else ""
+            date = normalize_date_common(raw_date)
 
             tags = check_keywords(title)
+
             body = extract_article_body(link)
-            summary = summarize_body(body, 2).replace("\n", " ")
+            summary = summarize_body(body, max_lines=2).replace("\n", " ")
 
             results.append({
                 "source": "전기신문",
@@ -262,51 +287,38 @@ def crawl_electric_news():
 
 
 # ==========================================
-# 5. JSON 저장 (index.html 호환 latest.json)
+# 5. 통합 실행 + latest.json 저장
+#    latest.json 구조는 index.html과 100% 호환:
+#    [{ title, subtitle, date, source, url, tags }, ...]
 # ==========================================
 
 def job():
-    print("\n=== 크롤링 시작 ===")
+    print(f"\n[크롤링 시작] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    data = []
-    data.extend(crawl_energy_news())
-    data.extend(crawl_gas_news())
-    data.extend(crawl_electric_news())
+    all_data = []
+    all_data.extend(crawl_energy_news())
+    all_data.extend(crawl_gas_news())
+    all_data.extend(crawl_electric_news())
 
     # URL 기준 중복 제거
     dedup = {}
-    for a in data:
-        dedup[a["url"]] = a
-    articles = list(dedup.values())
+    for art in all_data:
+        dedup[art["url"]] = art
+    unique_articles = list(dedup.values())
 
     # 중요 기사 우선 정렬
-    articles.sort(key=lambda x: x["is_important"], reverse=True)
+    unique_articles.sort(key=lambda x: x["is_important"], reverse=True)
 
-    # index.html 이 바로 사용하는 latest.json
+    # index.html에서 바로 읽는 latest.json 생성
     with LATEST_JSON_PATH.open("w", encoding="utf-8") as f:
-        json.dump(articles, f, ensure_ascii=False, indent=2)
+        json.dump(unique_articles, f, ensure_ascii=False, indent=2)
 
-    print(f"[완료] {len(articles)}건 저장 → {LATEST_JSON_PATH}")
+    print(f"[완료] {len(unique_articles)}건 수집 → {LATEST_JSON_PATH}")
 
 
 # ==========================================
-# 6. 실행 엔트리
+# 6. 메인: 호출될 때 한 번만 실행
 # ==========================================
 
 if __name__ == "__main__":
-    # GitHub Actions에서는 한 번만 실행
-    if os.getenv("GITHUB_ACTIONS") == "true":
-        job()
-    else:
-        # 로컬 실행: 스케줄 모듈이 있으면 08:00 / 15:00 자동 실행
-        job()
-        if schedule is not None:
-            print("로컬에서 08:00 / 15:00 자동 실행 모드입니다.")
-            schedule.every().day.at("08:00").do(job)
-            schedule.every().day.at("15:00").do(job)
-            while True:
-                schedule.run_pending()
-                time.sleep(60)
-        else:
-            print("스케줄 모듈이 없어 한 번만 실행했습니다. "
-                  "로컬 자동 실행을 원하면 `pip install schedule` 후 다시 실행해줘.")
+    job()
