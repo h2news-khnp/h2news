@@ -25,7 +25,8 @@ KEYWORDS = [
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
-JSON_PATH = DATA_DIR / "news_data.json"
+NEWS_JSON_PATH = DATA_DIR / "news_data.json"   # 전체 정보용
+LATEST_JSON_PATH = DATA_DIR / "latest.json"    # index.html에서 읽는 버전
 
 
 # ==========================================
@@ -44,27 +45,29 @@ def get_soup(url: str):
 
 
 def check_keywords(title: str):
-    """제목에 포함된 키워드 목록 리턴"""
+    """제목에 포함된 키워드를 태그로 리턴"""
     lower = title.lower()
     return [kw for kw in KEYWORDS if kw.lower() in lower]
 
 
 def normalize_date_common(raw: str) -> str:
     """
-    여러 신문에서 공통으로 쓸 수 있는 날짜 파서
-    '2025.12.10', '2025.12.10 09:30', '2025-12-10' 등 대응
+    여러 신문 공통 날짜 파서
+    '2025.12.10', '2025.12.10 09:30', '2025-12-10', '12.10 09:30' 등 대응
     """
     if not raw:
         return datetime.now().strftime("%Y-%m-%d")
 
     raw = raw.strip()
+
+    # 연도까지 있는 경우
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d", "%Y-%m-%d"):
         try:
             return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
         except ValueError:
             continue
 
-    # 연도가 빠져있고 '12.10 09:30' 형태인 경우 (가스신문 스타일)
+    # 연도가 없는 '12.10 09:30' / '12.10' 형태
     year = datetime.now().year
     try:
         return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d %H:%M").strftime("%Y-%m-%d")
@@ -104,13 +107,13 @@ def extract_article_body(url: str) -> str:
 
 
 def split_sentences(text: str):
-    """lookbehind 문제 없는 한국어 + 영어 혼합 문장 분리기"""
+    """lookbehind 문제 없는 한국어 + 영어 혼합 문장 분리"""
     if not text:
         return []
 
     cleaned = re.sub(r"\s+", " ", text).strip()
 
-    # '다.' 기준으로 한번 잘라줌
+    # '다.' 기준으로 줄바꿈
     cleaned = cleaned.replace("다. ", "다.\n")
     cleaned = cleaned.replace("다.", "다.\n")
 
@@ -128,7 +131,7 @@ def split_sentences(text: str):
 
 
 def summarize_body(body: str, max_lines: int = 2) -> str:
-    """본문에서 앞쪽 문장 기준으로 N줄 요약"""
+    """본문에서 앞쪽 문장 기준으로 N줄 요약 (index.html에서는 subtitle로 사용)"""
     if not body:
         return ""
 
@@ -173,7 +176,7 @@ def crawl_energy_news():
             category_tag = art.select_one("em.info.category")
             category = category_tag.get_text(strip=True) if category_tag else "에너지"
 
-            kws = check_keywords(title)
+            tags = check_keywords(title)
 
             body = extract_article_body(link)
             summary = summarize_body(body, max_lines=2)
@@ -184,10 +187,10 @@ def crawl_energy_news():
                 "title": title,
                 "link": link,
                 "date": date,
-                "keywords": kws,
+                "tags": tags,
                 "summary": summary,
                 "body": body,
-                "is_important": len(kws) > 0
+                "is_important": len(tags) > 0
             })
         except Exception:
             continue
@@ -208,7 +211,7 @@ def crawl_gas_news():
 
     articles = soup.select("#section-list .type1 li")
     if not articles:
-        # 혹시 구조가 바뀐 경우 대비
+        # 혹시 구조 변경 대비
         articles = soup.select(".article-list .list-block")
 
     for art in articles:
@@ -229,7 +232,7 @@ def crawl_gas_news():
             category_tag = art.select_one("em.info.category")
             category = category_tag.get_text(strip=True) if category_tag else "가스"
 
-            kws = check_keywords(title)
+            tags = check_keywords(title)
 
             body = extract_article_body(link)
             summary = summarize_body(body, max_lines=2)
@@ -240,10 +243,10 @@ def crawl_gas_news():
                 "title": title,
                 "link": link,
                 "date": date,
-                "keywords": kws,
+                "tags": tags,
                 "summary": summary,
                 "body": body,
-                "is_important": len(kws) > 0
+                "is_important": len(tags) > 0
             })
         except Exception:
             continue
@@ -281,7 +284,7 @@ def crawl_electric_news():
             category_tag = art.select_one("em.info.category")
             category = category_tag.get_text(strip=True) if category_tag else "전력"
 
-            kws = check_keywords(title)
+            tags = check_keywords(title)
 
             body = extract_article_body(link)
             summary = summarize_body(body, max_lines=2)
@@ -292,10 +295,10 @@ def crawl_electric_news():
                 "title": title,
                 "link": link,
                 "date": date,
-                "keywords": kws,
+                "tags": tags,
                 "summary": summary,
                 "body": body,
-                "is_important": len(kws) > 0
+                "is_important": len(tags) > 0
             })
         except Exception:
             continue
@@ -305,6 +308,8 @@ def crawl_electric_news():
 
 # ==========================================
 # 5. 통합 실행 + JSON 저장 (중복 제거)
+#    - news_data.json  : 전체 구조 (메타 포함)
+#    - latest.json     : index.html이 읽는 배열
 # ==========================================
 
 def job():
@@ -324,34 +329,51 @@ def job():
     # 중요 기사 우선 정렬
     unique_articles.sort(key=lambda x: x["is_important"], reverse=True)
 
-    output = {
+    # ---------- 1) 전체 정보 news_data.json ----------
+    full_output = {
         "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "total_count": len(unique_articles),
         "articles": unique_articles,
     }
+    with NEWS_JSON_PATH.open("w", encoding="utf-8") as f:
+        json.dump(full_output, f, ensure_ascii=False, indent=2)
 
-    with JSON_PATH.open("w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2)
+    # ---------- 2) index.html용 latest.json ----------
+    # index.html 에서 기대하는 필드:
+    #   title, subtitle, date, source, url, tags
+    simple_list = []
+    for art in unique_articles:
+        simple_list.append({
+            "title": art["title"],
+            "subtitle": art["summary"],   # 2줄 요약
+            "date": art["date"],
+            "source": art["source"],
+            "url": art["link"],
+            "tags": art["tags"],
+        })
 
-    print(f"[완료] {len(unique_articles)}건 수집 → {JSON_PATH}")
+    with LATEST_JSON_PATH.open("w", encoding="utf-8") as f:
+        json.dump(simple_list, f, ensure_ascii=False, indent=2)
+
+    print(f"[완료] {len(unique_articles)}건 수집 → {NEWS_JSON_PATH.name}, {LATEST_JSON_PATH.name} 생성")
 
 
 # ==========================================
 # 6. 메인 진입점
-#    - GitHub Actions 환경: 한 번만 실행 후 종료
-#    - 로컬 실행: 08:00 / 15:00 스케줄
+#    - GitHub Actions: 한 번 실행 후 종료
+#    - 로컬 실행: 08:00 / 15:00 자동 실행
 # ==========================================
 
 if __name__ == "__main__":
     print("=== 뉴스 크롤러 자동화 시스템 시작 ===")
     print(f"타겟 키워드 샘플: {', '.join(KEYWORDS[:5])} ... 외 {len(KEYWORDS)-5}개")
 
-    # GitHub Actions 환경에서는 한 번만 실행하고 끝내기
+    # GitHub Actions 환경에서는 한 번만 실행
     if os.getenv("GITHUB_ACTIONS") == "true":
         job()
     else:
         print("매일 08:00, 15:00에 자동으로 실행됩니다. (로컬 실행 기준)")
-        # 최초 한 번 실행
+        # 최초 1회 실행
         job()
 
         # 스케줄 등록
