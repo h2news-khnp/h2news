@@ -1,106 +1,337 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>에너지 뉴스 모니터링</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
-        .meta { color: #666; font-size: 0.9em; margin-bottom: 20px; text-align: right; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
-        th { background-color: #0056b3; color: white; position: sticky; top: 0; }
-        tr:hover { background-color: #f1f1f1; }
-        
-        /* 중요 기사 강조 스타일 */
-        .important-row { background-color: #fff8e1; }
-        .keyword-tag { 
-            display: inline-block; 
-            background-color: #ff5252; 
-            color: white; 
-            font-size: 0.75em; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            margin-right: 4px; 
-            font-weight: bold;
-        }
-        
-        .source-tag { font-size: 0.8em; padding: 3px 6px; border-radius: 4px; color: #fff; display: inline-block; min-width: 60px; text-align: center;}
-        .src-energy { background-color: #ff9800; }
-        .src-gas { background-color: #2196f3; }
-        .src-electric { background-color: #4caf50; }
-        
-        a { text-decoration: none; color: #333; font-weight: 500; }
-        a:hover { color: #0056b3; text-decoration: underline; }
-    </style>
+<meta charset="UTF-8">
+<title>KHNP Hydrogen News</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    :root {
+        --khnp-blue: #0054A6;
+        --bg-color: #f0f2f5;
+    }
+
+    body {
+        background: var(--bg-color);
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        color: #333;
+        padding-bottom: 50px;
+    }
+
+    /* 헤더 컴팩트하게 변경 */
+    header {
+        background: white;
+        border-bottom: 1px solid #ddd;
+        padding: 1rem 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    header h5 {
+        margin: 0;
+        color: var(--khnp-blue);
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
+
+    /* 필터 박스 소형화 */
+    .filter-container {
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+    }
+
+    .form-control-sm, .form-select-sm {
+        font-size: 0.85rem;
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+    }
+
+    /* 뉴스 카드 디자인 */
+    .news-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #eef0f2;
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        transition: transform 0.2s;
+    }
+
+    .news-card:active {
+        transform: scale(0.98); /* 모바일 터치 시 눌리는 효과 */
+    }
+
+    .meta-info {
+        font-size: 0.75rem;
+        color: #888;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .news-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+        color: #222;
+    }
+
+    .news-subtitle {
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+        /* 2줄 이상 넘어가면 말줄임표 처리 */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* 하단 태그와 링크 영역 */
+    .card-bottom {
+        display: flex;
+        justify-content: space-between; /* 양끝 정렬 */
+        align-items: flex-end;
+        border-top: 1px solid #f1f1f1;
+        padding-top: 10px;
+        margin-top: 10px;
+    }
+
+    .tags-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        max-width: 70%; /* 태그가 너무 많아도 버튼을 침범하지 않게 */
+    }
+
+    .tag-badge {
+        font-size: 0.7rem;
+        background-color: #e7f1ff;
+        color: var(--khnp-blue);
+        padding: 2px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-link-custom {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--khnp-blue);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+    
+    .btn-link-custom:hover {
+        text-decoration: underline;
+    }
+
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h1>📰 일일 에너지/수소 뉴스 모니터링</h1>
-    <div class="meta" id="update-time">업데이트: 로딩 중...</div>
+<header class="text-center">
+    <div class="container d-flex justify-content-center align-items-center">
+        <i class="fa-solid fa-atom me-2 text-primary"></i>
+        <h5>KHNP H2 News Archive</h5>
+    </div>
+</header>
 
-    <table>
-        <thead>
-            <tr>
-                <th width="10%">언론사</th>
-                <th width="10%">카테고리</th>
-                <th>제목 (키워드 매칭)</th>
-                <th width="12%">작성일</th>
-            </tr>
-        </thead>
-        <tbody id="news-list">
-            </tbody>
-    </table>
+<div class="container">
+
+    <div class="filter-container">
+        <div class="row g-2">
+            <div class="col-12">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 태그 검색...">
+                </div>
+            </div>
+            <div class="col-6">
+                <select id="dateFilter" class="form-select form-select-sm">
+                    <option value="all">날짜: 전체</option>
+                </select>
+            </div>
+            <div class="col-6">
+                <select id="tagFilter" class="form-select form-select-sm">
+                    <option value="all">태그: 전체</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="newsList">
+        </div>
+    
+    <div id="loading" class="text-center py-4 text-muted small">
+        <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...
+    </div>
+
 </div>
 
 <script>
-    // JSON 파일 불러오기
-    fetch('news_data.json')
-        .then(response => {
-            if (!response.ok) { throw new Error("JSON 파일을 찾을 수 없습니다."); }
-            return response.json();
-        })
-        .then(data => {
-            document.getElementById('update-time').innerText = '최종 업데이트: ' + data.updated_at + ' (총 ' + data.total_count + '건)';
-            const list = document.getElementById('news-list');
-            
-            data.articles.forEach(news => {
-                const tr = document.createElement('tr');
-                if (news.is_important) tr.classList.add('important-row');
+// -------------------------------
+// 데이터 로드 및 처리
+// -------------------------------
+let articles = [];
+let filtered = [];
 
-                // 언론사 뱃지 색상
-                let srcClass = 'src-energy';
-                if (news.source === '가스신문') srcClass = 'src-gas';
-                if (news.source === '전기신문') srcClass = 'src-electric';
+async function loadJSON() {
+    try {
+        // GitHub Pages 캐시 문제 방지를 위해 timestamp 추가
+        const res = await fetch("data/latest.json?" + Date.now()); 
+        
+        if (!res.ok) throw new Error("데이터를 찾을 수 없습니다.");
+        
+        articles = await res.json();
 
-                // 키워드 태그 생성
-                let keywordsHtml = '';
-                if (news.keywords && news.keywords.length > 0) {
-                    news.keywords.forEach(k => {
-                        keywordsHtml += `<span class="keyword-tag">${k}</span>`;
-                    });
-                }
+        // 필터 옵션 생성
+        buildDateOptions();
+        buildTagOptions();
 
-                tr.innerHTML = `
-                    <td><span class="source-tag ${srcClass}">${news.source}</span></td>
-                    <td>${news.category}</td>
-                    <td>
-                        ${keywordsHtml}
-                        <a href="${news.link}" target="_blank">${news.title}</a>
-                    </td>
-                    <td>${news.date}</td>
-                `;
-                list.appendChild(tr);
-            });
-        })
-        .catch(error => {
-            document.getElementById('news-list').innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">데이터를 불러오는 데 실패했습니다.<br>python 스크립트를 먼저 실행해서 json 파일을 생성해주세요.<br>(${error.message})</td></tr>`;
-        });
+        // 초기 렌더링
+        filtered = [...articles];
+        render();
+        
+        document.getElementById('loading').style.display = 'none';
+    } catch (e) {
+        document.getElementById('loading').innerHTML = `<span class="text-danger">데이터 로드 실패<br>${e.message}</span>`;
+    }
+}
+
+// 날짜 옵션 (내림차순 정렬)
+function buildDateOptions() {
+    const dateSet = new Set(articles.map(a => a.date));
+    const dateFilter = document.getElementById("dateFilter");
+    // 날짜 정렬 (최신순)
+    const sortedDates = Array.from(dateSet).sort().reverse();
+
+    sortedDates.forEach(date => {
+        let op = document.createElement("option");
+        op.value = date;
+        op.textContent = date;
+        dateFilter.appendChild(op);
+    });
+}
+
+// 태그 옵션
+function buildTagOptions() {
+    const tagSet = new Set();
+    articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
+    
+    const tagFilter = document.getElementById("tagFilter");
+    // 가나다순 정렬
+    const sortedTags = Array.from(tagSet).sort();
+
+    sortedTags.forEach(tag => {
+        let op = document.createElement("option");
+        op.value = tag;
+        op.textContent = tag;
+        tagFilter.appendChild(op);
+    });
+}
+
+// -------------------------------
+// 화면 렌더링 (핵심 수정 부분)
+// -------------------------------
+function render() {
+    const container = document.getElementById("newsList");
+    container.innerHTML = "";
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5 text-muted">
+                <i class="far fa-folder-open fa-2x mb-3"></i><br>
+                검색 결과가 없습니다.
+            </div>`;
+        return;
+    }
+
+    filtered.forEach(a => {
+        // 태그 HTML 생성
+        const tagsHtml = a.tags.map(t => 
+            `<span class="tag-badge" onclick="filterByTag('${t}')">#${t}</span>`
+        ).join("");
+
+        const html = `
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="news-card">
+                    <div class="meta-info">
+                        <span class="me-2"><i class="far fa-calendar me-1"></i>${a.date}</span>
+                        <span><i class="far fa-newspaper me-1"></i>${a.source}</span>
+                    </div>
+
+                    <h3 class="news-title">${a.title}</h3>
+
+                    <p class="news-subtitle">${a.subtitle}</p>
+
+                    <div class="card-bottom">
+                        <div class="tags-wrapper">
+                            ${tagsHtml}
+                        </div>
+                        <a href="${a.url}" target="_blank" class="btn-link-custom">
+                            원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += html;
+    });
+}
+
+// -------------------------------
+// 필터 로직
+// -------------------------------
+function applyFilters() {
+    const dateVal = document.getElementById("dateFilter").value;
+    const tagVal = document.getElementById("tagFilter").value;
+    const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
+
+    filtered = articles.filter(a => {
+        let ok = true;
+        if (dateVal !== "all") ok = ok && a.date === dateVal;
+        if (tagVal !== "all") ok = ok && a.tags.includes(tagVal);
+        if (keyword) {
+            const block = `${a.title} ${a.subtitle} ${a.tags.join(" ")}`.toLowerCase();
+            ok = ok && block.includes(keyword);
+        }
+        return ok;
+    });
+
+    render();
+}
+
+// 태그 뱃지 클릭 시 필터링
+function filterByTag(tag) {
+    document.getElementById("tagFilter").value = tag;
+    applyFilters();
+    // 사용자 경험을 위해 상단으로 스크롤 이동
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 이벤트 리스너
+document.getElementById("dateFilter").addEventListener("change", applyFilters);
+document.getElementById("tagFilter").addEventListener("change", applyFilters);
+document.getElementById("searchInput").addEventListener("input", applyFilters);
+
+// 시작
+loadJSON();
+
 </script>
-
 </body>
 </html>
