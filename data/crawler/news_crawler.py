@@ -18,7 +18,7 @@ KEYWORDS = [
     "수소생산", "수소저장", "액화수소",
     "충전소", "수소버스", "수소차", "인프라",
     "한수원", "두산퓨얼셀", "한화임팩트", "현대차",
-    "HPS", "HPC", "REC", "RPS",
+    "HPS", "HPC", "REC", "RPS"
 ]
 
 DATA_DIR = Path("data")
@@ -76,7 +76,7 @@ def normalize_date_common(raw: str):
 
 
 # ==========================================
-# 3. 본문 추출 & 요약 (subtitle 2줄)
+# 3. 본문 추출 & 요약 (1 / 2 / 3줄)
 # ==========================================
 
 def extract_article_body(url: str) -> str:
@@ -125,20 +125,33 @@ def split_sentences(text: str):
     return sentences
 
 
-def summarize_body(body: str, max_lines: int = 2) -> str:
-    """본문에서 앞쪽 문장 기준으로 N줄 요약 (index.html에서는 subtitle로 사용)"""
-    if not body:
-        return ""
-
+def summarize_variants(body: str):
+    """
+    본문에서
+      - 1줄 요약: 첫 문장
+      - 2줄 요약: 앞 2문장
+      - 3줄 요약: 앞 3문장
+    을 만들어서 dict로 반환
+    """
     sents = split_sentences(body)
     if not sents:
-        return ""
+        return {"one": "", "two": "", "three": ""}
 
-    return "\n".join(sents[:max_lines])
+    one = sents[0]
+    two = " ".join(sents[:2]) if len(sents) >= 2 else one
+    three = " ".join(sents[:3]) if len(sents) >= 3 else two
+
+    # index.html에서 한 줄로 보여주기 위해 개행 제거
+    return {
+        "one": one.replace("\n", " "),
+        "two": two.replace("\n", " "),
+        "three": three.replace("\n", " "),
+    }
 
 
 # ==========================================
 # 4. 각 신문별 크롤러
+#    👉 수정 포인트: tags가 비어 있으면 그 기사는 버림
 # ==========================================
 
 def crawl_energy_news():
@@ -152,18 +165,10 @@ def crawl_energy_news():
     if not soup:
         return results
 
-    # 1차: 기존 패턴
-    articles = soup.select("section#section-list ul.type1 > li")
-    # 2차: 예비 패턴
-    if not articles:
-        articles = soup.select("#section-list .type1 li")
-    # 3차: 최후의 안전장치
-    if not articles:
-        articles = soup.select("#section-list li")
-
+    articles = soup.select("#section-list .type1 li")
     for art in articles:
         try:
-            title_tag = art.select_one("h2.titles a") or art.select_one("h4.titles a")
+            title_tag = art.select_one("h2.titles a")
             if not title_tag:
                 continue
 
@@ -172,28 +177,33 @@ def crawl_energy_news():
             if not link.startswith("http"):
                 link = base_url + link
 
+            # 🔹 제목에서 키워드 태그 생성
+            tags = check_keywords(title)
+            # 🔹 수소 관련 키워드가 하나도 없으면 패스
+            if not tags:
+                continue
+
             date_tag = art.select_one("em.info.dated")
             raw_date = date_tag.get_text(strip=True) if date_tag else ""
             date = normalize_date_common(raw_date)
 
-            tags = check_keywords(title)
-
             body = extract_article_body(link)
-            summary = summarize_body(body, max_lines=2).replace("\n", " ")
+            summaries = summarize_variants(body)
 
             results.append({
                 "source": "에너지신문",
                 "title": title,
                 "url": link,
                 "date": date,
-                "tags": tags,
-                "subtitle": summary,
-                "is_important": len(tags) > 0,
+                "tags": tags,                  # 최소 1개 이상 보장
+                "summary1": summaries["one"],  # 1줄 요약
+                "subtitle": summaries["two"],  # 2줄 요약(기본)
+                "summary3": summaries["three"],# 3줄 요약
+                "is_important": True,          # 태그가 있으므로 True
             })
         except Exception:
             continue
 
-    print(f"   [에너지신문] 수집 {len(results)}건")
     return results
 
 
@@ -208,11 +218,9 @@ def crawl_gas_news():
     if not soup:
         return results
 
-    articles = soup.select("section#section-list ul.type1 > li")
+    articles = soup.select("#section-list .type1 li")
     if not articles:
-        articles = soup.select("#section-list .type1 li")
-    if not articles:
-        articles = soup.select("#section-list li")
+        articles = soup.select(".article-list .list-block")
 
     for art in articles:
         try:
@@ -225,14 +233,17 @@ def crawl_gas_news():
             if not link.startswith("http"):
                 link = base_url + link
 
+            # 🔹 키워드 체크
+            tags = check_keywords(title)
+            if not tags:
+                continue
+
             date_tag = art.select_one("em.info.dated")
             raw_date = date_tag.get_text(strip=True) if date_tag else ""
             date = normalize_date_common(raw_date)
 
-            tags = check_keywords(title)
-
             body = extract_article_body(link)
-            summary = summarize_body(body, max_lines=2).replace("\n", " ")
+            summaries = summarize_variants(body)
 
             results.append({
                 "source": "가스신문",
@@ -240,13 +251,14 @@ def crawl_gas_news():
                 "url": link,
                 "date": date,
                 "tags": tags,
-                "subtitle": summary,
-                "is_important": len(tags) > 0,
+                "summary1": summaries["one"],
+                "subtitle": summaries["two"],
+                "summary3": summaries["three"],
+                "is_important": True,
             })
         except Exception:
             continue
 
-    print(f"   [가스신문] 수집 {len(results)}건")
     return results
 
 
@@ -261,21 +273,10 @@ def crawl_electric_news():
     if not soup:
         return results
 
-    # 1차: 실제 전기신문 구조에 맞춘 패턴
-    articles = soup.select("#section-list ul.type > li.item")
-    # 2차: 예비 패턴
-    if not articles:
-        articles = soup.select("section#section-list ul.type1 > li")
-    if not articles:
-        articles = soup.select("#section-list .type1 li")
-    if not articles:
-        articles = soup.select("#section-list li")
-
+    articles = soup.select("#section-list .type1 li")
     for art in articles:
         try:
-            title_tag = art.select_one("h4.titles a.replace-titles") \
-                        or art.select_one("h4.titles a") \
-                        or art.select_one("h2.titles a")
+            title_tag = art.select_one("h2.titles a") or art.select_one("h4.titles a")
             if not title_tag:
                 continue
 
@@ -284,14 +285,17 @@ def crawl_electric_news():
             if not link.startswith("http"):
                 link = base_url + link
 
-            date_tag = art.select_one("em.replace-date") or art.select_one("em.info.dated")
+            # 🔹 키워드 체크
+            tags = check_keywords(title)
+            if not tags:
+                continue
+
+            date_tag = art.select_one("em.info.dated")
             raw_date = date_tag.get_text(strip=True) if date_tag else ""
             date = normalize_date_common(raw_date)
 
-            tags = check_keywords(title)
-
             body = extract_article_body(link)
-            summary = summarize_body(body, max_lines=2).replace("\n", " ")
+            summaries = summarize_variants(body)
 
             results.append({
                 "source": "전기신문",
@@ -299,13 +303,14 @@ def crawl_electric_news():
                 "url": link,
                 "date": date,
                 "tags": tags,
-                "subtitle": summary,
-                "is_important": len(tags) > 0,
+                "summary1": summaries["one"],
+                "subtitle": summaries["two"],
+                "summary3": summaries["three"],
+                "is_important": True,
             })
         except Exception:
             continue
 
-    print(f"   [전기신문] 수집 {len(results)}건")
     return results
 
 
@@ -327,10 +332,13 @@ def job():
         dedup[art["url"]] = art
     unique_articles = list(dedup.values())
 
-    # 중요 기사 우선 정렬
+    # 오늘 날짜 기사만 남기기
+    today = datetime.now().strftime("%Y-%m-%d")
+    unique_articles = [a for a in unique_articles if a["date"] == today]
+
+    # 이미 is_important = True로 고정이지만, 혹시 확장 대비 정렬 유지
     unique_articles.sort(key=lambda x: x["is_important"], reverse=True)
 
-    # index.html에서 바로 읽는 latest.json 생성
     with LATEST_JSON_PATH.open("w", encoding="utf-8") as f:
         json.dump(unique_articles, f, ensure_ascii=False, indent=2)
 
@@ -338,7 +346,7 @@ def job():
 
 
 # ==========================================
-# 6. 메인: 호출될 때 한 번만 실행
+# 6. 메인
 # ==========================================
 
 if __name__ == "__main__":
