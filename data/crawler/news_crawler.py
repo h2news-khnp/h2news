@@ -1,30 +1,24 @@
-import json
-import re
-from datetime import datetime
-from pathlib import Path
-
 import requests
 from bs4 import BeautifulSoup
+import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import re
 
-try:
-    from zoneinfo import ZoneInfo  # Python 3.9+
-except Exception:
-    ZoneInfo = None
-
-# ==========================================
-# 0. 시간대(한국) 고정
-# ==========================================
-KST = ZoneInfo("Asia/Seoul") if ZoneInfo else None
+# =========================
+# 0. KST 기준 "오늘" 유틸
+# =========================
+KST = timezone(timedelta(hours=9))
 
 def now_kst():
-    return datetime.now(KST) if KST else datetime.now()
+    return datetime.now(KST)
 
 def today_kst_str():
     return now_kst().strftime("%Y-%m-%d")
 
-# ==========================================
+# =========================
 # 1. 설정
-# ==========================================
+# =========================
 KEYWORDS = [
     "수소", "연료전지", "그린수소", "청정수소", "블루수소", "원자력",
     "PAFC", "SOFC", "MCFC", "PEM", "재생", "배출권", "히트펌프", "도시가스", "구역전기", "PPA",
@@ -32,8 +26,8 @@ KEYWORDS = [
     "암모니아", "암모니아크래킹", "CCU", "CCUS", "기후부", "ESS", "배터리",
     "수소생산", "수소저장", "액화수소",
     "충전소", "수소버스", "수소차", "인프라",
-    "한수원", "두산퓨얼셀", "한화임팩트", "현대차",
-    "HPS", "HPC", "REC", "RPS"
+    "한수원", "두산퓨얼셀", 
+    "HPS", "REC", "RPS"
 ]
 
 DATA_DIR = Path("data")
@@ -42,14 +36,10 @@ DATA_DIR.mkdir(exist_ok=True)
 DAILY_DIR.mkdir(parents=True, exist_ok=True)
 
 LATEST_JSON_PATH = DATA_DIR / "latest.json"
-DAILY_INDEX_PATH = DAILY_DIR / "index.json"
 
-# 페이지 1~3 자동 크롤링
-MAX_PAGES = 3
-
-# ==========================================
-# 2. 공통 유틸
-# ==========================================
+# =========================
+# 2. 유틸 함수
+# =========================
 def get_soup(url: str):
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
@@ -57,67 +47,59 @@ def get_soup(url: str):
         res.raise_for_status()
         return BeautifulSoup(res.text, "html.parser")
     except Exception as e:
-        print(f"[ERROR] GET 실패: {url} → {e}")
+        print(f"[ERROR] {url} → {e}")
         return None
 
-def has_any_keyword(text: str) -> bool:
-    if not text:
-        return False
-    low = text.lower()
-    return any(kw.lower() in low for kw in KEYWORDS)
+def check_keywords(text: str):
+    lower = (text or "").lower()
+    return [kw for kw in KEYWORDS if kw.lower() in lower]
 
-def extract_tags(text: str):
-    if not text:
-        return []
-    low = text.lower()
-    tags = [kw for kw in KEYWORDS if kw.lower() in low]
-    # 중복 제거(순서 유지)
-    return list(dict.fromkeys(tags))
-
-def normalize_date_common(raw: str) -> str:
+def normalize_date_common(raw: str):
     """
-    '2025.12.10', '2025.12.10 09:30', '2025-12-10', '12.10 09:30' 등 대응
+    파싱 실패 시 '오늘'을 넣지 말고 None 반환.
+    -> 날짜별 아카이빙 정확도를 위해 필수.
     """
     if not raw:
-        return today_kst_str()
+        return None
 
     raw = raw.strip()
 
+    # 날짜 문자열에서 숫자/구분자만 최대한 남김
+    cleaned = re.sub(r"[^0-9\.\:\-\s]", " ", raw)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+    # 1) 연도 포함 케이스
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d", "%Y-%m-%d"):
         try:
-            return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+            return datetime.strptime(cleaned, fmt).strftime("%Y-%m-%d")
         except ValueError:
             pass
 
-    # 연도 없는 경우는 KST 기준 연도 사용
+    # 2) 연도 미포함 케이스: "12.17 09:30", "12.17"
     year = now_kst().year
-    try:
-        return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d %H:%M").strftime("%Y-%m-%d")
-    except Exception:
+    for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d"):
         try:
-            return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d").strftime("%Y-%m-%d")
+            return datetime.strptime(f"{year}.{cleaned}", fmt).strftime("%Y-%m-%d")
         except Exception:
-            return today_kst_str()
+            pass
 
-# ==========================================
-# 3. 본문 추출 + 2문장 요약
-# ==========================================
+    return None
+
+# =========================
+# 3. 본문/요약
+# =========================
 def extract_article_body(url: str) -> str:
     soup = get_soup(url)
     if not soup:
         return ""
 
     body_el = soup.select_one(
-        "div#article-view-content-div, "
-        "div.article-body, "
-        "div#articleBody, "
-        "div.article-text"
+        "div#article-view-content-div, div.article-body, div#articleBody, div.article-text"
     )
-
-    if body_el:
-        texts = [x.get_text(" ", strip=True) for x in body_el.find_all(["p", "span", "div"])]
-    else:
+    if not body_el:
         texts = [p.get_text(" ", strip=True) for p in soup.select("p")]
+    else:
+        texts = [x.get_text(" ", strip=True) for x in body_el.find_all(["p", "span", "div"])]
 
     body = " ".join(texts)
     body = re.sub(r"\s+", " ", body).strip()
@@ -127,207 +109,221 @@ def split_sentences(text: str):
     if not text:
         return []
     cleaned = re.sub(r"\s+", " ", text).strip()
-
-    # 한국어 종결 "다." 기준 줄바꿈
     cleaned = cleaned.replace("다. ", "다.\n").replace("다.", "다.\n")
-
-    # 고정 길이 lookbehind만 사용
     parts = re.split(r"(?<=[.!?])\s+", cleaned)
 
-    sents = []
+    sentences = []
     for p in parts:
         for seg in p.split("\n"):
             seg = seg.strip()
             if seg:
-                sents.append(seg)
-    return sents
+                sentences.append(seg)
+    return sentences
 
-def summarize_body_2sent(body: str) -> str:
+def summarize_body(body: str, max_lines: int = 2) -> str:
     sents = split_sentences(body)
     if not sents:
         return ""
-    # index.html에서 2줄 clamp라서, \n 대신 공백으로 합쳐도 됨
-    return " ".join(sents[:2]).strip()
+    return " ".join(sents[:max_lines]).strip()
 
-# ==========================================
-# 4. 신문별 크롤러 (1~3페이지)
-#    - 제목+본문 모두에서 키워드 판단
-# ==========================================
+# =========================
+# 4. 상세페이지에서 날짜 추출(가능하면)
+# =========================
+def extract_article_date(url: str, fallback: str):
+    soup = get_soup(url)
+    if not soup:
+        return fallback
+
+    # 사이트별 날짜가 있는 영역 후보를 넓게 탐색
+    candidates = [
+        "em.info.dated",
+        "span.date",
+        "span.datetime",
+        "div.article-head-info span",
+        "li.datetime",
+        "p.info span",
+    ]
+
+    text = ""
+    for sel in candidates:
+        el = soup.select_one(sel)
+        if el and el.get_text(strip=True):
+            text = el.get_text(" ", strip=True)
+            break
+
+    # fallback: 페이지 전체에서 패턴 검색
+    if not text:
+        all_text = soup.get_text(" ", strip=True)
+        m = re.search(r"(\d{4}\.\d{2}\.\d{2}\s*\d{2}:\d{2})", all_text)
+        if m:
+            text = m.group(1)
+        else:
+            m = re.search(r"(\d{4}\.\d{2}\.\d{2})", all_text)
+            if m:
+                text = m.group(1)
+
+    parsed = normalize_date_common(text) if text else None
+    return parsed or fallback
+
+# =========================
+# 5. 크롤러(1~3페이지)
+# =========================
 def crawl_energy_news(max_pages: int = 3):
-    print("[에너지신문] 크롤링 시작")
     results = []
-    base = "https://www.energy-news.co.kr"
-
+    base_url = "https://www.energy-news.co.kr"
     for page in range(1, max_pages + 1):
-        url = f"{base}/news/articleList.html?page={page}&view_type=sm"
+        url = f"{base_url}/news/articleList.html?page={page}&view_type=sm"
+        print(f"   [에너지신문] {page}p → {url}")
+
         soup = get_soup(url)
         if not soup:
             continue
 
-        # 에너지신문은 type1/section-list 구조가 자주 바뀌어서 후보를 넓게 잡음
-        items = soup.select("#section-list .type1 li, #section-list ul.type1 > li, #section-list li")
+        items = soup.select("#section-list .type1 li")
         for it in items:
-            a = it.select_one("h2.titles a, h4.titles a")
-            if not a:
+            try:
+                a = it.select_one("h2.titles a")
+                if not a:
+                    continue
+                title = a.get_text(strip=True)
+                link = a.get("href", "")
+                if not link.startswith("http"):
+                    link = base_url + link
+
+                # 목록 날짜
+                date_el = it.select_one("em.info.dated")
+                list_date = normalize_date_common(date_el.get_text(strip=True) if date_el else "")  # None 가능
+
+                # 본문 키워드 판단(제목+본문)
+                body = extract_article_body(link)
+                tags = check_keywords(f"{title} {body}")
+                if not tags:
+                    continue
+
+                # 날짜는 상세에서 재확인(실패 시 목록 날짜)
+                date = extract_article_date(link, list_date)
+
+                # 날짜를 못 얻으면 저장에서 제외(아카이브 정확도 우선)
+                if not date:
+                    continue
+
+                results.append({
+                    "source": "에너지신문",
+                    "title": title,
+                    "url": link,
+                    "date": date,
+                    "tags": tags,
+                    "subtitle": summarize_body(body, 2),
+                    "is_important": True
+                })
+            except Exception:
                 continue
-
-            title = a.get_text(strip=True)
-            link = a.get("href", "")
-            if not link:
-                continue
-            if not link.startswith("http"):
-                link = base + link
-
-            date_el = it.select_one("em.info.dated")
-            raw_date = date_el.get_text(strip=True) if date_el else ""
-            date = normalize_date_common(raw_date)
-
-            body = extract_article_body(link)
-            judge_text = f"{title} {body}"
-
-            # 제목+본문에서 키워드 판단
-            if not has_any_keyword(judge_text):
-                continue
-
-            tags = extract_tags(judge_text)
-            subtitle = summarize_body_2sent(body)
-
-            results.append({
-                "source": "에너지신문",
-                "title": title,
-                "url": link,
-                "date": date,
-                "tags": tags,
-                "subtitle": subtitle
-            })
-
-    print(f"[에너지신문] 수집 {len(results)}건")
     return results
 
 def crawl_gas_news(max_pages: int = 3):
-    print("[가스신문] 크롤링 시작")
     results = []
-    base = "https://www.gasnews.com"
-
+    base_url = "https://www.gasnews.com"
     for page in range(1, max_pages + 1):
-        url = f"{base}/news/articleList.html?page={page}&view_type=sm"
+        url = f"{base_url}/news/articleList.html?page={page}&view_type=sm"
+        print(f"   [가스신문] {page}p → {url}")
+
         soup = get_soup(url)
         if not soup:
             continue
 
-        items = soup.select("#section-list .type1 li, #section-list ul.type1 > li, #section-list li")
+        items = soup.select("#section-list .type1 li")
         for it in items:
-            a = it.select_one("h2.titles a, h4.titles a")
-            if not a:
+            try:
+                a = it.select_one("h2.titles a") or it.select_one("h4.titles a")
+                if not a:
+                    continue
+                title = a.get_text(strip=True)
+                link = a.get("href", "")
+                if not link.startswith("http"):
+                    link = base_url + link
+
+                date_el = it.select_one("em.info.dated")
+                list_date = normalize_date_common(date_el.get_text(strip=True) if date_el else "")
+
+                body = extract_article_body(link)
+                tags = check_keywords(f"{title} {body}")
+                if not tags:
+                    continue
+
+                date = extract_article_date(link, list_date)
+                if not date:
+                    continue
+
+                results.append({
+                    "source": "가스신문",
+                    "title": title,
+                    "url": link,
+                    "date": date,
+                    "tags": tags,
+                    "subtitle": summarize_body(body, 2),
+                    "is_important": True
+                })
+            except Exception:
                 continue
-
-            title = a.get_text(strip=True)
-            link = a.get("href", "")
-            if not link:
-                continue
-            if not link.startswith("http"):
-                link = base + link
-
-            date_el = it.select_one("em.info.dated")
-            raw_date = date_el.get_text(strip=True) if date_el else ""
-            date = normalize_date_common(raw_date)
-
-            body = extract_article_body(link)
-            judge_text = f"{title} {body}"
-            if not has_any_keyword(judge_text):
-                continue
-
-            tags = extract_tags(judge_text)
-            subtitle = summarize_body_2sent(body)
-
-            results.append({
-                "source": "가스신문",
-                "title": title,
-                "url": link,
-                "date": date,
-                "tags": tags,
-                "subtitle": subtitle
-            })
-
-    print(f"[가스신문] 수집 {len(results)}건")
     return results
 
 def crawl_electric_news(max_pages: int = 3):
-    print("[전기신문] 크롤링 시작")
     results = []
-    base = "https://www.electimes.com"
-
+    base_url = "https://www.electimes.com"
     for page in range(1, max_pages + 1):
-        url = f"{base}/news/articleList.html?page={page}&view_type=sm"
+        url = f"{base_url}/news/articleList.html?page={page}&view_type=sm"
+        print(f"   [전기신문] {page}p → {url}")
+
         soup = get_soup(url)
         if not soup:
             continue
 
-        items = soup.select("#section-list .type1 li, #section-list ul.type1 > li, #section-list li")
+        items = soup.select("#section-list .type1 li")
         for it in items:
-            a = it.select_one("h2.titles a, h4.titles a")
-            if not a:
+            try:
+                a = it.select_one("h2.titles a") or it.select_one("h4.titles a")
+                if not a:
+                    continue
+                title = a.get_text(strip=True)
+                link = a.get("href", "")
+                if not link.startswith("http"):
+                    link = base_url + link
+
+                date_el = it.select_one("em.info.dated")
+                list_date = normalize_date_common(date_el.get_text(strip=True) if date_el else "")
+
+                body = extract_article_body(link)
+                tags = check_keywords(f"{title} {body}")
+                if not tags:
+                    continue
+
+                date = extract_article_date(link, list_date)
+                if not date:
+                    continue
+
+                results.append({
+                    "source": "전기신문",
+                    "title": title,
+                    "url": link,
+                    "date": date,
+                    "tags": tags,
+                    "subtitle": summarize_body(body, 2),
+                    "is_important": True
+                })
+            except Exception:
                 continue
-
-            title = a.get_text(strip=True)
-            link = a.get("href", "")
-            if not link:
-                continue
-            if not link.startswith("http"):
-                link = base + link
-
-            date_el = it.select_one("em.info.dated")
-            raw_date = date_el.get_text(strip=True) if date_el else ""
-            date = normalize_date_common(raw_date)
-
-            body = extract_article_body(link)
-            judge_text = f"{title} {body}"
-            if not has_any_keyword(judge_text):
-                continue
-
-            tags = extract_tags(judge_text)
-            subtitle = summarize_body_2sent(body)
-
-            results.append({
-                "source": "전기신문",
-                "title": title,
-                "url": link,
-                "date": date,
-                "tags": tags,
-                "subtitle": subtitle
-            })
-
-    print(f"[전기신문] 수집 {len(results)}건")
     return results
 
-# ==========================================
-# 5. 저장 로직 (latest + daily + index)
-# ==========================================
-def write_json(path: Path, data):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def update_daily_index():
-    # daily 폴더 내 YYYY-MM-DD.json 목록을 최신순으로 저장
-    dates = []
-    for p in DAILY_DIR.glob("*.json"):
-        if p.name == "index.json":
-            continue
-        name = p.stem  # "2025-12-17"
-        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", name):
-            dates.append(name)
-    dates = sorted(set(dates))
-    write_json(DAILY_INDEX_PATH, dates)
-
+# =========================
+# 6. 저장: 날짜별 daily + latest.json(최신 날짜)
+# =========================
 def job():
-    run_date = today_kst_str()
-    print(f"\n[START] KST 기준 실행일: {run_date}")
+    print(f"\n[크롤링 시작] {now_kst().strftime('%Y-%m-%d %H:%M:%S')} (KST)")
 
     all_data = []
-    all_data.extend(crawl_energy_news(MAX_PAGES))
-    all_data.extend(crawl_gas_news(MAX_PAGES))
-    all_data.extend(crawl_electric_news(MAX_PAGES))
+    all_data.extend(crawl_energy_news(3))
+    all_data.extend(crawl_gas_news(3))
+    all_data.extend(crawl_electric_news(3))
 
     # URL 기준 중복 제거
     dedup = {}
@@ -335,28 +331,30 @@ def job():
         dedup[a["url"]] = a
     unique = list(dedup.values())
 
-    # (선택) 날짜 내림차순, 그 다음 중요도 느낌으로 tags 많은 순
-    unique.sort(key=lambda x: (x.get("date",""), len(x.get("tags",[]))), reverse=True)
+    # date 기준 그룹핑 저장
+    by_date = {}
+    for a in unique:
+        by_date.setdefault(a["date"], []).append(a)
 
-    # 1) daily: 실행일(KST) 파일에는 "그 날짜 기사만" 저장
-    daily = [a for a in unique if a.get("date") == run_date]
-    daily_path = DAILY_DIR / f"{run_date}.json"
-    write_json(daily_path, daily)
-    print(f"[WRITE] {daily_path} ({len(daily)}건)")
+    # 각 날짜 파일 저장(덮어쓰기 갱신)
+    for d, items in by_date.items():
+        items.sort(key=lambda x: (x["source"], x["title"]))
+        out = DAILY_DIR / f"{d}.json"
+        with out.open("w", encoding="utf-8") as f:
+            json.dump(items, f, ensure_ascii=False, indent=2)
 
-    # 2) latest.json: index.html 기본 로드용 = daily와 동일(오늘자)
-    write_json(LATEST_JSON_PATH, daily)
-    print(f"[WRITE] {LATEST_JSON_PATH} ({len(daily)}건)")
-
-    # 3) daily/index.json 갱신
-    update_daily_index()
-    print(f"[WRITE] {DAILY_INDEX_PATH}")
-
-    # 디버그: 수집은 했는데 daily가 0인 경우 원인 확인용
-    if len(unique) > 0 and len(daily) == 0:
-        sample_dates = sorted({x.get("date","") for x in unique})[-10:]
-        print(f"[WARN] 수집은 {len(unique)}건인데 '{run_date}'로 매칭된 기사가 0건")
-        print(f"       수집된 날짜 샘플: {sample_dates}")
+    # latest.json은 가장 최신 날짜 파일을 가리키게 생성
+    if by_date:
+        latest_date = sorted(by_date.keys())[-1]
+        latest_items = by_date[latest_date]
+        with LATEST_JSON_PATH.open("w", encoding="utf-8") as f:
+            json.dump(latest_items, f, ensure_ascii=False, indent=2)
+        print(f"[완료] {len(unique)}건 / 최신날짜={latest_date} → daily/*.json + latest.json")
+    else:
+        # 아무것도 못 건졌으면 빈 배열이라도 생성(인덱스 오류 방지)
+        with LATEST_JSON_PATH.open("w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+        print("[완료] 수집 0건 → latest.json 빈 배열 생성")
 
 if __name__ == "__main__":
     job()
