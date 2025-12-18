@@ -1,6 +1,18 @@
 [
   {
     "source": "가스신문",
+    "title": "케이퓨얼셀, 연료전지 분리판 NET 인증 획득",
+    "url": "https://www.gasnews.com/news/articleView.html?idxno=123221",
+    "date": "2025-12-18",
+    "tags": [
+      "수소",
+      "연료전지"
+    ],
+    "subtitle": "케이퓨얼셀 나성욱대표가 수상을 받고 있다. [가스신문 = 한상원 기자] 케이퓨얼셀이 연료전지 분리판 제조 기술력을 정부로부터 인정받았다.",
+    "is_important": true
+  },
+  {
+    "source": "가스신문",
     "title": "충북 그린·청정수소 육성 위해 전력투구",
     "url": "https://www.gasnews.com/news/articleView.html?idxno=123226",
     "date": "2025-12-18",
@@ -39,18 +51,6 @@
       "충전소"
     ],
     "subtitle": "현대차 울산 수소연료전지 신공장 기공식에 참석한 주요 연사들이 세리머니를 진행하고 있다. [가스신문 = 한상원 기자] 2025년 국내 수소산업은 업계가 ‘기대와 실망이 동시에 폭발한 해’로 기억할 만큼 혼돈이 컸다.",
-    "is_important": true
-  },
-  {
-    "source": "가스신문",
-    "title": "케이퓨얼셀, 연료전지 분리판 NET 인증 획득",
-    "url": "https://www.gasnews.com/news/articleView.html?idxno=123221",
-    "date": "2025-12-18",
-    "tags": [
-      "수소",
-      "연료전지"
-    ],
-    "subtitle": "케이퓨얼셀 나성욱대표가 수상을 받고 있다. [가스신문 = 한상원 기자] 케이퓨얼셀이 연료전지 분리판 제조 기술력을 정부로부터 인정받았다.",
     "is_important": true
   }
 ]
