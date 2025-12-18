@@ -1,9 +1,10 @@
-import requests
-from bs4 import BeautifulSoup
 import json
+import re
 from datetime import datetime
 from pathlib import Path
-import re
+
+import requests
+from bs4 import BeautifulSoup
 
 # ==========================================
 # 1. 설정
@@ -15,42 +16,59 @@ KEYWORDS = [
     "수전해", "전해조", "PEMEC", "AEM", "알카라인", "분산", "NDC", "핑크수소",
     "암모니아", "암모니아크래킹", "CCU", "CCUS", "기후부", "ESS", "배터리",
     "수소생산", "수소저장", "액화수소",
-    "충전소", "수소버스", "수소차",
+    "충전소", "수소버스", "수소차", "인프라",
     "한수원", "두산퓨얼셀", 
-    "HPS", "REC", "RPS"
+    "HPS", "HPC", "REC", "RPS"
 ]
-
-DATA_DIR = Path("data")
-DATA_DIR.mkdir(exist_ok=True)
-
-ALL_JSON_PATH = DATA_DIR / "all.json"         # 누적(검색용)
-LATEST_JSON_PATH = DATA_DIR / "latest.json"   # 최신일(빠른 로딩용)
 
 MAX_PAGES = 3
 
+DATA_DIR = Path("data")
+BY_DATE_DIR = DATA_DIR / "by_date"
+DATA_DIR.mkdir(exist_ok=True)
+BY_DATE_DIR.mkdir(exist_ok=True)
+
+ALL_JSON_PATH = DATA_DIR / "all.json"       # 전체 누적(인덱스 검색용)
+LATEST_JSON_PATH = DATA_DIR / "latest.json" # 인덱스 기본 표시용(최신 날짜만)
+
+# 3개 신문 목록 URL(페이지 포함)
+ENERGY_BASE = "https://www.energy-news.co.kr"
+GAS_BASE = "https://www.gasnews.com"
+ELECT_BASE = "https://www.electimes.com"
+
+ENERGY_LIST = ENERGY_BASE + "/news/articleList.html?page={page}&view_type=sm"
+GAS_LIST = GAS_BASE + "/news/articleList.html?page={page}&view_type=sm"
+ELECT_LIST = ELECT_BASE + "/news/articleList.html?page={page}&view_type=sm"
+
+TIMEOUT = 12
+
 # ==========================================
-# 2. 유틸 함수
+# 2. 공통 유틸
 # ==========================================
 
-def get_soup(url: str):
+def now_str():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def normalize_spaces(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "")).strip()
+
+def get_soup(url: str) -> BeautifulSoup | None:
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
-        res = requests.get(url, headers=headers, timeout=15)
-        res.raise_for_status()
-        return BeautifulSoup(res.text, "html.parser")
+        r = requests.get(url, headers=headers, timeout=TIMEOUT)
+        r.raise_for_status()
+        return BeautifulSoup(r.text, "html.parser")
     except Exception as e:
-        print(f"[ERROR] {url} → {e}")
+        print(f"[ERROR] GET 실패: {url} | {e}")
         return None
 
-def check_keywords(text: str):
-    lower = (text or "").lower()
-    return [kw for kw in KEYWORDS if kw.lower() in lower]
-
-def normalize_date_common(raw: str):
+def parse_date(raw: str) -> str:
+    """
+    '2025.12.18 10:30', '2025.12.18', '2025-12-18', '12.18 10:30' 등 대응
+    """
+    raw = (raw or "").strip()
     if not raw:
         return datetime.now().strftime("%Y-%m-%d")
-
-    raw = raw.strip()
 
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d", "%Y-%m-%d"):
         try:
@@ -58,259 +76,282 @@ def normalize_date_common(raw: str):
         except ValueError:
             pass
 
+    # 연도 없는 형태
     year = datetime.now().year
-    try:
-        return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d %H:%M").strftime("%Y-%m-%d")
-    except Exception:
+    for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d"):
         try:
-            return datetime.strptime(f"{year}.{raw}", "%Y.%m.%d").strftime("%Y-%m-%d")
-        except Exception:
-            return datetime.now().strftime("%Y-%m-%d")
+            return datetime.strptime(f"{year}.{raw}", fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
 
-def extract_article_body(url: str) -> str:
-    soup = get_soup(url)
-    if not soup:
-        return ""
+    return datetime.now().strftime("%Y-%m-%d")
 
-    body_el = soup.select_one(
-        "div#article-view-content-div, "
-        "div.article-body, "
-        "div#articleBody, "
-        "div.article-text"
-    )
+def make_tags(text: str) -> list[str]:
+    low = (text or "").lower()
+    tags = [kw for kw in KEYWORDS if kw.lower() in low]
+    # 중복 제거(순서 유지)
+    seen = set()
+    out = []
+    for t in tags:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
 
-    if not body_el:
-        texts = [p.get_text(" ", strip=True) for p in soup.select("p")]
-    else:
-        texts = [x.get_text(" ", strip=True) for x in body_el.find_all(["p", "span", "div"])]
+def contains_keyword(text: str) -> bool:
+    low = (text or "").lower()
+    return any(kw.lower() in low for kw in KEYWORDS)
 
-    body = " ".join(texts)
-    return re.sub(r"\s+", " ", body).strip()
-
-def split_sentences(text: str):
+def split_sentences_ko(text: str) -> list[str]:
+    """
+    lookbehind 고정폭 오류 회피 + 한국어 '다.' 처리
+    """
     if not text:
         return []
-    cleaned = re.sub(r"\s+", " ", text).strip()
+    cleaned = normalize_spaces(text)
     cleaned = cleaned.replace("다. ", "다.\n").replace("다.", "다.\n")
     parts = re.split(r"(?<=[.!?])\s+", cleaned)
-
-    sentences = []
+    sents = []
     for p in parts:
         for seg in p.split("\n"):
             seg = seg.strip()
             if seg:
-                sentences.append(seg)
-    return sentences
+                sents.append(seg)
+    return sents
 
-def summarize_body(body: str, max_lines: int = 2) -> str:
-    sents = split_sentences(body)
-    return " ".join(sents[:max_lines]).strip() if sents else ""
-
-def is_h2_related(title: str, body: str):
-    # 제목 + 본문 모두 기준으로 키워드 판단
-    tags = sorted(set(check_keywords(title) + check_keywords(body)))
-    return (len(tags) > 0), tags
+def summarize_2lines(body: str) -> str:
+    sents = split_sentences_ko(body)
+    if not sents:
+        return ""
+    # 인덱스는 2줄 clamp라, 실제 subtitle은 줄바꿈 없이 한 줄로 넣는 게 안정적
+    return normalize_spaces(" ".join(sents[:2]))
 
 # ==========================================
-# 3. 크롤러 (1~3페이지)
+# 3. 본문 추출 (신문별 fallback 포함)
 # ==========================================
 
-def crawl_energy_news(max_pages=3):
-    print("   [에너지신문] 크롤링...")
-    results = []
-    base_url = "https://www.energy-news.co.kr"
+def extract_body(url: str) -> str:
+    soup = get_soup(url)
+    if not soup:
+        return ""
 
+    # CMS 공통 후보
+    candidates = [
+        "div#article-view-content-div",
+        "div#articleBody",
+        "div.article-body",
+        "div.article-text",
+        "article",
+    ]
+    body_el = None
+    for sel in candidates:
+        body_el = soup.select_one(sel)
+        if body_el:
+            break
+
+    texts = []
+    if body_el:
+        for node in body_el.find_all(["p", "span", "div"], recursive=True):
+            t = node.get_text(" ", strip=True)
+            if t:
+                texts.append(t)
+    else:
+        # 마지막 fallback: 전체 p
+        for p in soup.select("p"):
+            t = p.get_text(" ", strip=True)
+            if t:
+                texts.append(t)
+
+    body = normalize_spaces(" ".join(texts))
+
+    # 너무 짧으면(메뉴/푸터만 잡힌 경우) 빈값 처리
+    if len(body) < 40:
+        return ""
+    return body
+
+# ==========================================
+# 4. 목록 파서(신문별: 선택자 여러 후보)
+# ==========================================
+
+def pick_first(el, selectors: list[str]):
+    for s in selectors:
+        found = el.select_one(s)
+        if found:
+            return found
+    return None
+
+def crawl_list_generic(list_url: str, base_url: str, source_name: str, max_pages: int = 3) -> list[dict]:
+    """
+    #section-list 기반 CMS형 기사목록(에너지/가스/전기 공통 가능)
+    selector가 바뀌어도 후보를 넓게 잡아 생존성 높임
+    """
+    out = []
     for page in range(1, max_pages + 1):
-        url = f"{base_url}/news/articleList.html?page={page}&view_type=sm"
+        url = list_url.format(page=page)
         soup = get_soup(url)
         if not soup:
             continue
 
-        for art in soup.select("#section-list .type1 li"):
+        # 후보 1) sm 뷰에서 자주 쓰는 구조
+        items = soup.select("#section-list .type1 li")
+        # 후보 2) 다른 타입
+        if not items:
+            items = soup.select("#section-list ul.type1 > li")
+        if not items:
+            items = soup.select("#section-list ul.type > li")
+        if not items:
+            items = soup.select("#section-list li")
+
+        page_total = 0
+        page_keep = 0
+
+        for li in items:
             try:
-                a = art.select_one("h2.titles a") or art.select_one("h4.titles a")
+                a = pick_first(li, [
+                    "h2.titles a",
+                    "h4.titles a",
+                    "h4.titles a.replace-titles",
+                    "a.replace-titles",
+                    "a[href*='articleView.html']",
+                ])
                 if not a:
                     continue
 
                 title = a.get_text(strip=True)
-                link = a.get("href", "")
-                if link and not link.startswith("http"):
-                    link = base_url + link
+                href = a.get("href", "").strip()
+                if not href:
+                    continue
+                link = href if href.startswith("http") else (base_url + href)
 
-                raw_date = (art.select_one("em.info.dated") or {}).get_text(strip=True) if art.select_one("em.info.dated") else ""
-                date = normalize_date_common(raw_date)
+                date_el = pick_first(li, [
+                    "em.info.dated",
+                    "em.replace-date",
+                    "span.byline span",
+                ])
+                raw_date = date_el.get_text(strip=True) if date_el else ""
+                date = parse_date(raw_date)
 
-                body = extract_article_body(link)
-                ok, tags = is_h2_related(title, body)
-                if not ok:
+                page_total += 1
+
+                # 본문(상세)에서 키워드도 검사하려면 본문이 필요
+                body = extract_body(link)
+
+                # ✅ 관련성 판단 로직(중요)
+                # - 제목에 키워드 있으면 본문 실패해도 통과
+                # - 제목에 없으면 본문에서 키워드 있으면 통과
+                if not (contains_keyword(title) or contains_keyword(body)):
                     continue
 
-                subtitle = summarize_body(body, max_lines=2)
+                tags = make_tags(title + " " + body)
 
-                results.append({
-                    "source": "에너지신문",
+                subtitle = summarize_2lines(body)
+                # 본문이 비거나 요약이 빈 경우, 최소한 제목 기반으로라도 빈칸 방지
+                if not subtitle:
+                    # 목록에서 미리보기 문구가 있으면 사용
+                    lead_el = pick_first(li, ["p.lead", "p.lead a.replace-read", "p.lead a", "p.lead"])
+                    lead = normalize_spaces(lead_el.get_text(" ", strip=True) if lead_el else "")
+                    subtitle = lead[:220] if lead else ""
+
+                out.append({
+                    "source": source_name,
                     "title": title,
                     "url": link,
                     "date": date,
                     "tags": tags,
                     "subtitle": subtitle,
-                    "is_important": True
+                    "is_important": 1 if tags else 0,
                 })
+                page_keep += 1
             except Exception:
                 continue
-    return results
 
-def crawl_gas_news(max_pages=3):
-    print("   [가스신문] 크롤링...")
-    results = []
-    base_url = "https://www.gasnews.com"
+        print(f"   [{source_name}] page {page}: 목록 {page_total}건 중 {page_keep}건 통과 → {url}")
 
-    for page in range(1, max_pages + 1):
-        url = f"{base_url}/news/articleList.html?page={page}&sc_section_code=S1N9&view_type="
-        soup = get_soup(url)
-        if not soup:
-            continue
-
-        for art in soup.select("section#section-list ul.type1 > li"):
-            try:
-                a = art.select_one("h4.titles a") or art.select_one("h2.titles a")
-                if not a:
-                    continue
-
-                title = a.get_text(strip=True)
-                link = a.get("href", "")
-                if link and not link.startswith("http"):
-                    link = base_url + link
-
-                raw_date = (art.select_one("em.info.dated") or {}).get_text(strip=True) if art.select_one("em.info.dated") else ""
-                date = normalize_date_common(raw_date)
-
-                body = extract_article_body(link)
-                ok, tags = is_h2_related(title, body)
-                if not ok:
-                    continue
-
-                subtitle = summarize_body(body, max_lines=2)
-
-                results.append({
-                    "source": "가스신문",
-                    "title": title,
-                    "url": link,
-                    "date": date,
-                    "tags": tags,
-                    "subtitle": subtitle,
-                    "is_important": True
-                })
-            except Exception:
-                continue
-    return results
-
-def crawl_electric_news(max_pages=3):
-    print("   [전기신문] 크롤링...")
-    results = []
-    base_url = "https://www.electimes.com"
-
-    for page in range(1, max_pages + 1):
-        url = f"{base_url}/news/articleList.html?page={page}&view_type=sm"
-        soup = get_soup(url)
-        if not soup:
-            continue
-
-        for art in soup.select("#section-list .type1 li"):
-            try:
-                a = art.select_one("h2.titles a") or art.select_one("h4.titles a")
-                if not a:
-                    continue
-
-                title = a.get_text(strip=True)
-                link = a.get("href", "")
-                if link and not link.startswith("http"):
-                    link = base_url + link
-
-                raw_date = (art.select_one("em.info.dated") or {}).get_text(strip=True) if art.select_one("em.info.dated") else ""
-                date = normalize_date_common(raw_date)
-
-                body = extract_article_body(link)
-                ok, tags = is_h2_related(title, body)
-                if not ok:
-                    continue
-
-                subtitle = summarize_body(body, max_lines=2)
-
-                results.append({
-                    "source": "전기신문",
-                    "title": title,
-                    "url": link,
-                    "date": date,
-                    "tags": tags,
-                    "subtitle": subtitle,
-                    "is_important": True
-                })
-            except Exception:
-                continue
-    return results
+    return out
 
 # ==========================================
-# 4. 저장 로직 (중복제거 + 날짜별 + 누적)
+# 5. 통합 저장 (all.json / by_date / latest.json)
 # ==========================================
 
-def dedup_by_url(items):
+def load_existing_all() -> list[dict]:
+    if ALL_JSON_PATH.exists():
+        try:
+            return json.loads(ALL_JSON_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+    return []
+
+def dedup_by_url(items: list[dict]) -> list[dict]:
     d = {}
     for it in items:
-        if it.get("url"):
-            d[it["url"]] = it
+        u = it.get("url")
+        if not u:
+            continue
+        d[u] = it
     return list(d.values())
 
-def load_existing_all():
-    if not ALL_JSON_PATH.exists():
-        return []
-    try:
-        with ALL_JSON_PATH.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, list) else []
-    except Exception:
-        return []
+def write_by_date(all_items: list[dict]):
+    # 날짜별로 파일 생성
+    bucket = {}
+    for it in all_items:
+        dt = it.get("date") or "unknown"
+        bucket.setdefault(dt, []).append(it)
 
-def save_json(path: Path, data):
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    for dt, lst in bucket.items():
+        path = BY_DATE_DIR / f"{dt}.json"
+        path.write_text(json.dumps(lst, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def pick_latest_date(all_items: list[dict]) -> str | None:
+    dates = sorted({it.get("date") for it in all_items if it.get("date")}, reverse=True)
+    return dates[0] if dates else None
+
+def make_latest(all_items: list[dict]) -> list[dict]:
+    latest = pick_latest_date(all_items)
+    if not latest:
+        return []
+    return [it for it in all_items if it.get("date") == latest]
+
+def sort_articles(items: list[dict]) -> list[dict]:
+    # 최신 날짜 우선, 중요도 우선, 같은 날짜면 소스/제목
+    def key(it):
+        return (
+            it.get("date") or "",
+            it.get("is_important", 0),
+            it.get("source") or "",
+            it.get("title") or "",
+        )
+    return sorted(items, key=key, reverse=True)
 
 def job():
-    print(f"\n[크롤링 시작] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"\n[크롤링 시작] {now_str()}")
 
-    all_data = []
-    all_data.extend(crawl_energy_news(MAX_PAGES))
-    all_data.extend(crawl_gas_news(MAX_PAGES))
-    all_data.extend(crawl_electric_news(MAX_PAGES))
+    new_items = []
+    # 1) 에너지신문
+    new_items += crawl_list_generic(ENERGY_LIST, ENERGY_BASE, "에너지신문", max_pages=MAX_PAGES)
+    # 2) 가스신문
+    new_items += crawl_list_generic(GAS_LIST, GAS_BASE, "가스신문", max_pages=MAX_PAGES)
+    # 3) 전기신문
+    new_items += crawl_list_generic(ELECT_LIST, ELECT_BASE, "전기신문", max_pages=MAX_PAGES)
 
-    all_data = dedup_by_url(all_data)
+    print(f"\n[수집 결과] 신규 {len(new_items)}건 (필터 통과 기준)\n")
 
-    # 날짜별로 저장
-    by_date = {}
-    for a in all_data:
-        by_date.setdefault(a["date"], []).append(a)
+    # 누적(all.json) 유지: 기존 + 신규 합치고 URL로 중복제거
+    existing = load_existing_all()
+    merged = dedup_by_url(existing + new_items)
+    merged = sort_articles(merged)
 
-    for d, items in by_date.items():
-        items = dedup_by_url(items)
-        items.sort(key=lambda x: (x.get("is_important", False), x.get("source", ""), x.get("title", "")), reverse=True)
-        save_json(DATA_DIR / f"{d}.json", items)
+    # all.json 저장
+    ALL_JSON_PATH.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # 누적(all.json) 업데이트 (기존 + 신규 merge 후 URL 기준 dedup)
-    existing_all = load_existing_all()
-    merged = dedup_by_url(existing_all + all_data)
+    # 날짜별 저장(by_date)
+    write_by_date(merged)
 
-    # 누적본은 날짜 최신순 → (동일 날짜면 소스/제목)
-    merged.sort(key=lambda x: (x.get("date", ""), x.get("is_important", False)), reverse=True)
-    save_json(ALL_JSON_PATH, merged)
+    # latest.json 저장(최신 날짜만)
+    latest_items = sort_articles(make_latest(merged))
+    LATEST_JSON_PATH.write_text(json.dumps(latest_items, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # latest.json은 “가장 최신 날짜”만 뽑아서 저장
-    latest_date = max(by_date.keys()) if by_date else datetime.now().strftime("%Y-%m-%d")
-    latest_items = by_date.get(latest_date, [])
-    latest_items = dedup_by_url(latest_items)
-    latest_items.sort(key=lambda x: (x.get("is_important", False),), reverse=True)
-    save_json(LATEST_JSON_PATH, latest_items)
-
-    print(f"[완료] 날짜별 {len(by_date)}개 파일 + all.json + latest.json 생성")
+    latest_date = pick_latest_date(merged)
+    print(f"[저장 완료] all.json={len(merged)}건 | latest.json={len(latest_items)}건 | 최신날짜={latest_date}\n")
 
 if __name__ == "__main__":
     job()
