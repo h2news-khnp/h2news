@@ -9,32 +9,163 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
 <style>
-    :root { --khnp-blue:#0054A6; --bg-color:#f0f2f5; }
-    body { background:var(--bg-color); font-family:'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; color:#333; padding-bottom:50px; }
-    header { background:white; border-bottom:1px solid #ddd; padding:1rem 0; position:sticky; top:0; z-index:1000; box-shadow:0 2px 5px rgba(0,0,0,0.05); }
-    header h5 { margin:0; color:var(--khnp-blue); font-weight:800; font-size:1.1rem; }
+    :root {
+        --khnp-blue: #0054A6;
+        --bg-color: #f0f2f5;
+    }
 
-    .filter-container { background:white; border-radius:8px; padding:10px; margin-top:15px; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #eee; }
-    .form-control-sm, .form-select-sm { font-size:0.85rem; background-color:#f8f9fa; border:1px solid #e9ecef; }
+    body {
+        background: var(--bg-color);
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        color: #333;
+        padding-bottom: 50px;
+    }
 
-    .news-card { background:white; border-radius:12px; border:1px solid #eef0f2; padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.03); transition:transform 0.2s; }
-    .news-card:active { transform:scale(0.98); }
-    .meta-info { font-size:0.75rem; color:#888; margin-bottom:0.5rem; display:flex; align-items:center; }
-    .news-title { font-size:1.05rem; font-weight:700; line-height:1.4; margin-bottom:0.5rem; color:#222; }
-    .news-subtitle { font-size:0.9rem; color:#555; line-height:1.5; margin-bottom:1rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    header {
+        background: white;
+        border-bottom: 1px solid #ddd;
+        padding: 1rem 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    header h5 {
+        margin: 0;
+        color: var(--khnp-blue);
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
 
-    .card-bottom { display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid #f1f1f1; padding-top:10px; margin-top:10px; }
-    .tags-wrapper { display:flex; flex-wrap:wrap; gap:4px; max-width:70%; }
-    .tag-badge { font-size:0.7rem; background-color:#e7f1ff; color:var(--khnp-blue); padding:2px 8px; border-radius:4px; cursor:pointer; white-space:nowrap; }
-    .btn-link-custom { font-size:0.8rem; font-weight:600; color:var(--khnp-blue); text-decoration:none; display:flex; align-items:center; white-space:nowrap; }
-    .btn-link-custom:hover { text-decoration:underline; }
+    .filter-container {
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+    }
+
+    .form-control-sm, .form-select-sm {
+        font-size: 0.85rem;
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+    }
+
+    .news-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #eef0f2;
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        transition: transform 0.2s;
+    }
+
+    .news-card:active {
+        transform: scale(0.98);
+    }
+
+    .meta-info {
+        font-size: 0.75rem;
+        color: #888;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .news-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+        color: #222;
+    }
+
+    .news-subtitle {
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .card-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-top: 1px solid #f1f1f1;
+        padding-top: 10px;
+        margin-top: 10px;
+        gap: 10px;
+    }
+
+    .tags-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        max-width: 70%;
+    }
+
+    .tag-badge {
+        font-size: 0.7rem;
+        background-color: #e7f1ff;
+        color: var(--khnp-blue);
+        padding: 2px 8px;
+        border-radius: 999px;
+        cursor: pointer;
+        white-space: nowrap;
+        border: 1px solid rgba(0,84,166,0.15);
+    }
+
+    .btn-link-custom {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--khnp-blue);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+    
+    .btn-link-custom:hover {
+        text-decoration: underline;
+    }
+
+    .hint {
+        font-size: 0.75rem;
+        color: #888;
+        margin-top: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .chip {
+        font-size: 0.72rem;
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 999px;
+        padding: 4px 10px;
+        color: #666;
+    }
 </style>
 </head>
 <body>
 
 <header class="text-center">
     <div class="container d-flex justify-content-center align-items-center">
-        <i class="fa-solid fa-atom me-2 text-primary"></i>
+        <!-- ✅ 수소/분자 느낌 아이콘으로 변경 -->
+        <i class="fa-solid fa-circle-nodes me-2" style="color: var(--khnp-blue);"></i>
         <h5>KHNP H2 News Archive</h5>
     </div>
 </header>
@@ -45,15 +176,25 @@
         <div class="row g-2">
             <div class="col-12">
                 <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 태그 검색...">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 요약, 태그 검색...">
+                </div>
+
+                <div class="hint">
+                    <span class="chip" id="modeChip">기본: 최신 날짜 기사만 표시</span>
+                    <span class="chip" id="countChip">0건</span>
                 </div>
             </div>
+
             <div class="col-6">
                 <select id="dateFilter" class="form-select form-select-sm">
-                    <option value="">날짜 불러오는 중...</option>
+                    <option value="latest">날짜: 최신</option>
+                    <option value="all">날짜: 전체</option>
                 </select>
             </div>
+
             <div class="col-6">
                 <select id="tagFilter" class="form-select form-select-sm">
                     <option value="all">태그: 전체</option>
@@ -63,7 +204,7 @@
     </div>
 
     <div class="row" id="newsList"></div>
-
+    
     <div id="loading" class="text-center py-4 text-muted small">
         <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...
     </div>
@@ -71,174 +212,226 @@
 </div>
 
 <script>
-let articles = [];   // 선택 날짜의 기사만 저장
+let articles = [];
 let filtered = [];
-let selectedDate = "";
+let latestDate = null;
 
-async function fetchJson(path) {
-  const res = await fetch(path + "?t=" + Date.now());
-  if (!res.ok) throw new Error("데이터를 찾을 수 없습니다: " + path);
-  return await res.json();
+// -------------------------------
+// 데이터 로드: ✅ all.json(누적) 로드
+// -------------------------------
+async function loadJSON() {
+    try {
+        const res = await fetch("data/all.json?" + Date.now());
+        if (!res.ok) throw new Error("data/all.json을 찾을 수 없습니다.");
+
+        articles = await res.json();
+
+        // 최신 날짜 계산
+        const dateSet = new Set(articles.map(a => a.date).filter(Boolean));
+        const sortedDates = Array.from(dateSet).sort().reverse();
+        latestDate = sortedDates.length ? sortedDates[0] : null;
+
+        // 날짜 옵션 구성(최신/전체 + 실제 날짜)
+        buildDateOptions(sortedDates);
+        buildTagOptions();
+
+        // ✅ 기본은 최신 날짜만
+        document.getElementById("dateFilter").value = "latest";
+        applyFilters();
+
+        document.getElementById('loading').style.display = 'none';
+    } catch (e) {
+        document.getElementById('loading').innerHTML =
+            `<span class="text-danger">데이터 로드 실패<br>${e.message}</span>`;
+    }
 }
 
-async function loadManifestAndInit() {
-  try {
-    const manifest = await fetchJson("data/manifest.json");
-    const dates = (manifest.dates || []).slice().sort().reverse();
-    const latest = manifest.latest || (dates[0] || "");
+// 날짜 옵션 구성
+function buildDateOptions(sortedDates) {
+    const dateFilter = document.getElementById("dateFilter");
 
-    const dateSel = document.getElementById("dateFilter");
-    dateSel.innerHTML = "";
-
-    if (!dates.length) {
-      dateSel.innerHTML = `<option value="">저장된 날짜가 없습니다</option>`;
-      document.getElementById("loading").innerHTML = `<span class="text-danger">manifest.json에 날짜가 없습니다</span>`;
-      return;
+    // 기존 실제 날짜 옵션 제거(최신/전체 2개는 유지)
+    // latest/all 이후의 option만 지우기
+    while (dateFilter.options.length > 2) {
+        dateFilter.remove(2);
     }
 
-    dates.forEach(d => {
-      const op = document.createElement("option");
-      op.value = d;
-      op.textContent = d;
-      dateSel.appendChild(op);
+    sortedDates.forEach(date => {
+        let op = document.createElement("option");
+        op.value = date;
+        op.textContent = date;
+        dateFilter.appendChild(op);
+    });
+}
+
+// 태그 옵션
+function buildTagOptions() {
+    const tagSet = new Set();
+    articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
+    
+    const tagFilter = document.getElementById("tagFilter");
+    // 초기화(전체만 남김)
+    while (tagFilter.options.length > 1) tagFilter.remove(1);
+
+    const sortedTags = Array.from(tagSet).sort();
+    sortedTags.forEach(tag => {
+        let op = document.createElement("option");
+        op.value = tag;
+        op.textContent = tag;
+        tagFilter.appendChild(op);
+    });
+}
+
+// -------------------------------
+// 화면 렌더링
+// -------------------------------
+function render() {
+    const container = document.getElementById("newsList");
+    container.innerHTML = "";
+
+    document.getElementById("countChip").textContent = `${filtered.length}건`;
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5 text-muted">
+                <i class="far fa-folder-open fa-2x mb-3"></i><br>
+                검색 결과가 없습니다.
+            </div>`;
+        return;
+    }
+
+    filtered.forEach(a => {
+        const safeTags = Array.isArray(a.tags) ? a.tags : [];
+        const tagsHtml = safeTags.map(t =>
+            `<span class="tag-badge" onclick="filterByTag('${escapeHtml(t)}')">#${escapeHtml(t)}</span>`
+        ).join("");
+
+        const html = `
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="news-card">
+                    <div class="meta-info">
+                        <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date || "-")}</span>
+                        <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source || "-")}</span>
+                    </div>
+
+                    <h3 class="news-title">${escapeHtml(a.title || "")}</h3>
+
+                    <p class="news-subtitle">${escapeHtml(a.subtitle || "")}</p>
+
+                    <div class="card-bottom">
+                        <div class="tags-wrapper">
+                            ${tagsHtml}
+                        </div>
+                        <a href="${a.url || "#"}" target="_blank" class="btn-link-custom" rel="noopener">
+                            원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += html;
+    });
+}
+
+// -------------------------------
+// 필터 로직 (✅ 1번 UX: 기본 최신일 / 검색하면 전체)
+// -------------------------------
+function applyFilters() {
+    const dateVal = document.getElementById("dateFilter").value;   // latest / all / YYYY-MM-DD
+    const tagVal  = document.getElementById("tagFilter").value;    // all / tag
+    const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
+
+    // 검색어 있으면: 날짜를 전체로 풀어 전체기간 검색 (UX 개선)
+    if (keyword) {
+        if (dateVal === "latest") {
+            document.getElementById("dateFilter").value = "all";
+        }
+        document.getElementById("modeChip").textContent = "검색 중: 전체 날짜에서 검색";
+    } else {
+        // 검색어 없으면: 기본은 최신일
+        if (dateVal === "all") {
+            document.getElementById("modeChip").textContent = "전체 날짜 보기";
+        } else if (dateVal === "latest") {
+            document.getElementById("modeChip").textContent = "기본: 최신 날짜 기사만 표시";
+        } else {
+            document.getElementById("modeChip").textContent = `선택 날짜: ${dateVal}`;
+        }
+    }
+
+    const currentDateVal = document.getElementById("dateFilter").value;
+
+    filtered = articles.filter(a => {
+        let ok = true;
+
+        // 날짜 필터
+        if (currentDateVal === "latest") {
+            if (latestDate) ok = ok && a.date === latestDate;
+        } else if (currentDateVal !== "all") {
+            ok = ok && a.date === currentDateVal;
+        }
+
+        // 태그 필터
+        const tags = Array.isArray(a.tags) ? a.tags : [];
+        if (tagVal !== "all") ok = ok && tags.includes(tagVal);
+
+        // 검색 필터
+        if (keyword) {
+            const block = `${a.title || ""} ${a.subtitle || ""} ${(tags || []).join(" ")}`.toLowerCase();
+            ok = ok && block.includes(keyword);
+        }
+
+        return ok;
     });
 
-    dateSel.value = latest;
-    selectedDate = latest;
+    // 보기 좋은 정렬: 최신 날짜 우선, 같은 날짜면 source/제목
+    filtered.sort((x, y) => {
+        const dx = (x.date || "");
+        const dy = (y.date || "");
+        if (dx !== dy) return dy.localeCompare(dx);
+        return (x.title || "").localeCompare(y.title || "");
+    });
 
-    await loadDaily(selectedDate);
-    document.getElementById("loading").style.display = "none";
-  } catch (e) {
-    document.getElementById("loading").innerHTML = `<span class="text-danger">manifest 로드 실패<br>${e.message}</span>`;
-  }
-}
-
-async function loadDaily(dateStr) {
-  try {
-    selectedDate = dateStr;
-
-    // 날짜별 파일 fetch
-    const data = await fetchJson(`data/daily/${dateStr}.json`);
-
-    // ✅ 강제 조건: 선택한 날짜와 기사 date 일치만 보여줌
-    articles = (data || []).filter(a => a.date === dateStr);
-
-    buildTagOptions();
-    filtered = [...articles];
-    applyFilters(); // render 포함
-  } catch (e) {
-    articles = [];
-    filtered = [];
     render();
-    document.getElementById("loading").innerHTML = `<span class="text-danger">일자 데이터 로드 실패<br>${e.message}</span>`;
-  }
 }
 
-function buildTagOptions() {
-  const tagSet = new Set();
-  articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
-
-  const tagFilter = document.getElementById("tagFilter");
-  const sortedTags = Array.from(tagSet).sort();
-
-  tagFilter.innerHTML = `<option value="all">태그: 전체</option>`;
-  sortedTags.forEach(tag => {
-    let op = document.createElement("option");
-    op.value = tag;
-    op.textContent = tag;
-    tagFilter.appendChild(op);
-  });
-}
-
-function render() {
-  const container = document.getElementById("newsList");
-  container.innerHTML = "";
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="col-12 text-center py-5 text-muted">
-        <i class="far fa-folder-open fa-2x mb-3"></i><br>
-        선택한 날짜(${selectedDate})에 표시할 기사가 없습니다.
-      </div>`;
-    return;
-  }
-
-  filtered.forEach(a => {
-    const tags = (a.tags || []);
-    const tagsHtml = tags.map(t =>
-      `<span class="tag-badge" onclick="filterByTag('${t}')">#${t}</span>`
-    ).join("");
-
-    const html = `
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="news-card">
-          <div class="meta-info">
-            <span class="me-2"><i class="far fa-calendar me-1"></i>${a.date}</span>
-            <span><i class="far fa-newspaper me-1"></i>${a.source}</span>
-          </div>
-
-          <h3 class="news-title">${escapeHtml(a.title || "")}</h3>
-          <p class="news-subtitle">${escapeHtml(a.subtitle || "")}</p>
-
-          <div class="card-bottom">
-            <div class="tags-wrapper">${tagsHtml}</div>
-            <a href="${a.url}" target="_blank" class="btn-link-custom">
-              원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
-            </a>
-          </div>
-        </div>
-      </div>`;
-    container.innerHTML += html;
-  });
-}
-
-function applyFilters() {
-  const tagVal = document.getElementById("tagFilter").value;
-  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
-
-  filtered = articles.filter(a => {
-    // ✅ 한번 더 안전장치: 선택 날짜와 기사 날짜 불일치 제거
-    if (a.date !== selectedDate) return false;
-
-    let ok = true;
-    if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
-    if (keyword) {
-      const block = `${a.title || ""} ${a.subtitle || ""} ${(a.tags || []).join(" ")}`.toLowerCase();
-      ok = ok && block.includes(keyword);
-    }
-    return ok;
-  });
-
-  render();
-}
-
+// 태그 클릭으로 필터
 function filterByTag(tag) {
-  document.getElementById("tagFilter").value = tag;
-  applyFilters();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("tagFilter").value = tag;
+    applyFilters();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// 간단 XSS 방지
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (m) => ({
-    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
-  }[m]));
+// XSS 방지용 간단 escape
+function escapeHtml(str) {
+    return String(str ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
 }
 
 // 이벤트
-document.getElementById("dateFilter").addEventListener("change", async (e) => {
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("loading").innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> ${e.target.value} 불러오는 중...`;
-  await loadDaily(e.target.value);
-  document.getElementById("loading").style.display = "none";
+document.getElementById("dateFilter").addEventListener("change", () => {
+    const keyword = document.getElementById("searchInput").value.trim();
+    if (!keyword) applyFilters();
+    else applyFilters();
 });
 
 document.getElementById("tagFilter").addEventListener("change", applyFilters);
-document.getElementById("searchInput").addEventListener("input", applyFilters);
+
+document.getElementById("searchInput").addEventListener("input", () => {
+    const keyword = document.getElementById("searchInput").value.trim();
+    if (!keyword) {
+        // 검색어 지우면: 기본 최신일로 복귀
+        document.getElementById("dateFilter").value = "latest";
+        document.getElementById("modeChip").textContent = "기본: 최신 날짜 기사만 표시";
+    }
+    applyFilters();
+});
 
 // 시작
-loadManifestAndInit();
+loadJSON();
 </script>
-
 </body>
 </html>
