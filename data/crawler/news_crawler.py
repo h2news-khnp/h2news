@@ -16,7 +16,7 @@ KEYWORDS = [
     "수전해", "전해조", "PEMEC", "AEM", "알카라인", "분산", "NDC", "핑크수소",
     "암모니아", "암모니아크래킹", "CCU", "CCUS", "기후부", "ESS", "배터리",
     "수소생산", "수소저장", "액화수소",
-    "충전소", "수소버스", "수소차", "인프라",
+    "충전소", "수소버스", "수소차", 
     "한수원", "두산퓨얼셀", 
     "HPS", "REC", "RPS"
 ]
@@ -94,45 +94,30 @@ def make_tags(text: str) -> list:
 # 3. 본문 정제 (🔥 전기신문 핵심 수정)
 # ==========================================
 
-def clean_article_body(text: str) -> str:
-    if not text:
-        return ""
+def clean_electimes_noise(text: str) -> str:
+    """
+    전기신문 본문에서 기자/제보/공유 등 잡음 제거
+    """
+    s = normalize_spaces(text)
 
-    remove_patterns = [
-        r"[가-힣]{2,4}\s기자",
-        r"\([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\)",
-        r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
-        r"제보.*",
-        r"페이스북.*",
-        r"트위터.*",
-        r"카카오.*",
-        r"SNS.*",
-        r"공유.*",
-        r"기사보내기.*"
+    # 이메일 제거
+    s = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", " ", s)
+
+    # 전기신문에 자주 섞이는 안내/공유/제보 문구 제거
+    noise_patterns = [
+        r"제보\s*제보", r"제보", r"기사보내기", r"기사\s*보내기",
+        r"페이스북\(?\)?로\s*기사보내기", r"트위터\(?\)?로\s*기사보내기",
+        r"카카오톡\(?\)?으로\s*기사보내기", r"밴드\(?\)?로\s*기사보내기",
+        r"공유", r"SNS", r"좋아요", r"구독",
+        r"무단전재\s*및\s*재배포\s*금지",
     ]
+    for pat in noise_patterns:
+        s = re.sub(pat, " ", s, flags=re.IGNORECASE)
 
-    cleaned = text
-    for p in remove_patterns:
-        cleaned = re.sub(p, "", cleaned)
+    # 기자명 표기(예: 홍길동 기자 / 홍길동 기자(aaa@bbb.com))
+    s = re.sub(r"[가-힣]{2,4}\s*기자(\([^)]*\))?", " ", s)
 
-    return normalize_spaces(cleaned)
-
-def split_sentences_ko(text: str) -> list:
-    text = normalize_spaces(text)
-    text = text.replace("다. ", "다.\n").replace("다.", "다.\n")
-    parts = re.split(r"(?<=[.!?])\s+", text)
-
-    out = []
-    for p in parts:
-        for seg in p.split("\n"):
-            seg = seg.strip()
-            if seg:
-                out.append(seg)
-    return out
-
-def summarize_2lines(body: str) -> str:
-    sents = split_sentences_ko(body)
-    return normalize_spaces(" ".join(sents[:2])) if sents else ""
+    return normalize_spaces(s)
 
 # ==========================================
 # 4. 본문 추출
