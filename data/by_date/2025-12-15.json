@@ -1,0 +1,26 @@
+[
+  {
+    "source": "가스신문",
+    "title": "현대자동차, ‘디 올 뉴 넥쏘’ 세계 최고 수준 안전성 입증",
+    "url": "https://www.gasnews.com/news/articleView.html?idxno=123136",
+    "date": "2025-12-15",
+    "tags": [
+      "수소",
+      "수소차"
+    ],
+    "subtitle": "넥쏘가 유럽 신차 안전성 평가 프로그램 ‘유로 NCAP’에서 최고 등급인 별 다섯 개를 획득했다. [가스신문 = 한상원 기자] 현대자동차의 수소차 ‘디 올 뉴 넥쏘’가 세계 최고 수준의 안전성을 입증했다.",
+    "is_important": true
+  },
+  {
+    "source": "가스신문",
+    "title": "에이블맥스, AI 기반 안전관리 시스템 CBM+ 공개",
+    "url": "https://www.gasnews.com/news/articleView.html?idxno=123134",
+    "date": "2025-12-15",
+    "tags": [
+      "수소",
+      "충전소"
+    ],
+    "subtitle": "실시간 상태기반정비 CBM+ 플랫폼. [가스신문 = 한상원 기자]에이블맥스(주)(대표 김형일)는 최근 개최된 World Hydrogen Expo 2025에 참가해 혁신적인 설비 관리 체계를 구현하는 자사의 AI 기반 설비 상태 예측·안전관리 시스템(CBM+)을 공개했다.",
+    "is_important": true
+  }
+]
