@@ -6,432 +6,538 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
 <style>
-    :root {
-        --khnp-blue: #0054A6;
-        --bg-color: #f0f2f5;
-    }
+  :root {
+    --khnp-blue: #0054A6;
+    --bg-color: #f0f2f5;
+  }
 
-    body {
-        background: var(--bg-color);
-        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-        color: #333;
-        padding-bottom: 50px;
-    }
+  body {
+    background: var(--bg-color);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    color: #333;
+    padding-bottom: 50px;
+  }
 
-    header {
-        background: white;
-        border-bottom: 1px solid #ddd;
-        padding: 1rem 0;
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    
-    header h5 {
-        margin: 0;
-        color: var(--khnp-blue);
-        font-weight: 800;
-        font-size: 1.1rem;
-    }
+  header {
+    background: white;
+    border-bottom: 1px solid #ddd;
+    padding: 0.8rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
 
-    .filter-container {
-        background: white;
-        border-radius: 8px;
-        padding: 10px;
-        margin-top: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        border: 1px solid #eee;
-    }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
 
-    .form-control-sm, .form-select-sm {
-        font-size: 0.85rem;
-        background-color: #f8f9fa;
-        border: 1px solid #e9ecef;
-    }
+  .brand-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width: 40px;
+  }
 
-    .news-card {
-        background: white;
-        border-radius: 12px;
-        border: 1px solid #eef0f2;
-        padding: 1.2rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        transition: transform 0.2s;
-    }
+  .brand-logo{
+    width:28px;
+    height:28px;
+    object-fit:contain;
+    border-radius:6px;
+    background:#fff;
+    border:1px solid #eee;
+  }
 
-    .news-card:active {
-        transform: scale(0.98);
-    }
+  .brand-center{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:1;
+    gap:8px;
+    text-align:center;
+  }
 
-    .meta-info {
-        font-size: 0.75rem;
-        color: #888;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
+  header h5 {
+    margin: 0;
+    color: var(--khnp-blue);
+    font-weight: 900;
+    font-size: 1.05rem;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+  }
 
-    .news-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        line-height: 1.4;
-        margin-bottom: 0.5rem;
-        color: #222;
-    }
+  .brand-right{
+    min-width: 40px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    color: var(--khnp-blue);
+  }
 
-    .news-subtitle {
-        font-size: 0.9rem;
-        color: #555;
-        line-height: 1.5;
-        margin-bottom: 1rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
+  /* 오늘의 핵심 키워드 박스 */
+  .topkw {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    padding: 10px 12px;
+    margin-top: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
 
-    .card-bottom {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        border-top: 1px solid #f1f1f1;
-        padding-top: 10px;
-        margin-top: 10px;
-        gap: 10px;
-    }
+  .topkw-title{
+    font-size:0.85rem;
+    font-weight:800;
+    color:#444;
+    margin-bottom:8px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
 
-    .tags-wrapper {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        max-width: 70%;
-    }
+  .topkw-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:10px;
+  }
 
-    .tag-badge {
-        font-size: 0.7rem;
-        background-color: #e7f1ff;
-        color: var(--khnp-blue);
-        padding: 2px 8px;
-        border-radius: 999px;
-        cursor: pointer;
-        white-space: nowrap;
-        border: 1px solid rgba(0,84,166,0.15);
-    }
+  .kw-chip{
+    font-size:0.78rem;
+    background:#e7f1ff;
+    color: var(--khnp-blue);
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor:pointer;
+    border:1px solid rgba(0,84,166,0.12);
+    user-select:none;
+  }
+  .kw-chip:hover{ filter: brightness(0.98); }
 
-    .btn-link-custom {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--khnp-blue);
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-    }
-    
-    .btn-link-custom:hover {
-        text-decoration: underline;
-    }
+  .topkw-bars{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
 
-    .hint {
-        font-size: 0.75rem;
-        color: #888;
-        margin-top: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
+  .kw-bar-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
 
-    .chip {
-        font-size: 0.72rem;
-        background: #fff;
-        border: 1px solid #e9ecef;
-        border-radius: 999px;
-        padding: 4px 10px;
-        color: #666;
-    }
+  .kw-name{
+    width: 92px;
+    font-size:0.78rem;
+    color:#333;
+    font-weight:700;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .kw-bar-wrap{
+    flex:1;
+    height:10px;
+    background:#f1f3f5;
+    border-radius: 999px;
+    overflow:hidden;
+    border:1px solid #eee;
+  }
+
+  .kw-bar{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, #0054A6, #2b7bd2);
+    border-radius: 999px;
+  }
+
+  .kw-count{
+    width: 30px;
+    text-align:right;
+    font-size:0.78rem;
+    color:#666;
+    font-weight:700;
+  }
+
+  /* 필터 박스 */
+  .filter-container {
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+  }
+
+  .form-control-sm, .form-select-sm {
+    font-size: 0.85rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+  }
+
+  /* 뉴스 카드 */
+  .news-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #eef0f2;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    transition: transform 0.2s;
+  }
+  .news-card:active { transform: scale(0.98); }
+
+  .meta-info {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .news-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    color: #222;
+  }
+
+  .news-subtitle {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; 
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid #f1f1f1;
+    padding-top: 10px;
+    margin-top: 10px;
+    gap: 10px;
+  }
+
+  .tags-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 72%;
+  }
+
+  .tag-badge {
+    font-size: 0.7rem;
+    background-color: #e7f1ff;
+    color: var(--khnp-blue);
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-link-custom {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--khnp-blue);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .btn-link-custom:hover { text-decoration: underline; }
+
 </style>
 </head>
+
 <body>
 
-<header class="text-center">
-    <div class="container d-flex justify-content-center align-items-center">
-        <!-- ✅ 수소/분자 느낌 아이콘으로 변경 -->
-        <i class="fa-solid fa-circle-nodes me-2" style="color: var(--khnp-blue);"></i>
-        <h5>KHNP H2 News Archive</h5>
+<header>
+  <div class="container brand-row">
+    <div class="brand-left">
+      <img class="brand-logo"
+           src="assets/khnp_logo.png"
+           alt="KHNP"
+           onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='inline-flex';">
+      <span id="logoFallback" class="badge text-bg-light border" style="display:none; font-weight:900;">KHNP</span>
     </div>
+
+    <div class="brand-center">
+      <h5>KHNP H2 News Archive</h5>
+    </div>
+
+    <div class="brand-right" title="Hydrogen">
+      <i class="fa-solid fa-droplet"></i>
+    </div>
+  </div>
 </header>
 
 <div class="container">
 
-    <div class="filter-container">
-        <div class="row g-2">
-            <div class="col-12">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="fas fa-search text-muted"></i>
-                    </span>
-                    <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 요약, 태그 검색...">
-                </div>
+  <!-- 오늘의 핵심 키워드 TOP5 -->
+  <div class="topkw" id="topkwBox" style="display:none;">
+    <div class="topkw-title">
+      <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
+      오늘의 핵심 키워드 TOP 5
+      <span class="text-muted" style="font-weight:700; font-size:0.78rem;">(클릭하면 태그 필터 적용)</span>
+    </div>
 
-                <div class="hint">
-                    <span class="chip" id="modeChip">기본: 최신 날짜 기사만 표시</span>
-                    <span class="chip" id="countChip">0건</span>
-                </div>
-            </div>
+    <div class="topkw-chips" id="topkwChips"></div>
+    <div class="topkw-bars" id="topkwBars"></div>
+  </div>
 
-            <div class="col-6">
-                <select id="dateFilter" class="form-select form-select-sm">
-                    <option value="latest">날짜: 최신</option>
-                    <option value="all">날짜: 전체</option>
-                </select>
-            </div>
-
-            <div class="col-6">
-                <select id="tagFilter" class="form-select form-select-sm">
-                    <option value="all">태그: 전체</option>
-                </select>
-            </div>
+  <!-- 검색/필터 -->
+  <div class="filter-container">
+    <div class="row g-2">
+      <div class="col-12">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+          <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 요약, 태그 검색...">
         </div>
+      </div>
+      <div class="col-6">
+        <select id="dateFilter" class="form-select form-select-sm">
+          <option value="all">날짜: 전체</option>
+        </select>
+      </div>
+      <div class="col-6">
+        <select id="tagFilter" class="form-select form-select-sm">
+          <option value="all">태그: 전체</option>
+        </select>
+      </div>
     </div>
+  </div>
 
-    <div class="row" id="newsList"></div>
-    
-    <div id="loading" class="text-center py-4 text-muted small">
-        <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...
-    </div>
+  <div class="row" id="newsList"></div>
+
+  <div id="loading" class="text-center py-4 text-muted small">
+    <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...
+  </div>
 
 </div>
 
 <script>
+/**
+ * 기대 JSON: data/latest.json
+ * [
+ *   { "title", "subtitle", "date", "source", "url", "tags":[...] },
+ *   ...
+ * ]
+ */
+
 let articles = [];
 let filtered = [];
-let latestDate = null;
 
-// -------------------------------
-// 데이터 로드: ✅ all.json(누적) 로드
-// -------------------------------
 async function loadJSON() {
-    try {
-        const res = await fetch("data/all.json?" + Date.now());
-        if (!res.ok) throw new Error("data/all.json을 찾을 수 없습니다.");
+  try {
+    const res = await fetch("data/latest.json?" + Date.now());
+    if (!res.ok) throw new Error("data/latest.json을 찾을 수 없습니다.");
+    articles = await res.json();
 
-        articles = await res.json();
+    // 방어: tags 누락 대비
+    articles = (articles || []).map(a => ({
+      ...a,
+      tags: Array.isArray(a.tags) ? a.tags : []
+    }));
 
-        // 최신 날짜 계산
-        const dateSet = new Set(articles.map(a => a.date).filter(Boolean));
-        const sortedDates = Array.from(dateSet).sort().reverse();
-        latestDate = sortedDates.length ? sortedDates[0] : null;
+    buildDateOptions();
+    buildTagOptions();
 
-        // 날짜 옵션 구성(최신/전체 + 실제 날짜)
-        buildDateOptions(sortedDates);
-        buildTagOptions();
+    // 기본: 최신 날짜만 보이게 (latest.json이 최신 날짜만이면 그대로, 아니면 여기서 최신일자 자동선택)
+    autoSelectLatestDateIfMixed();
 
-        // ✅ 기본은 최신 날짜만
-        document.getElementById("dateFilter").value = "latest";
-        applyFilters();
-
-        document.getElementById('loading').style.display = 'none';
-    } catch (e) {
-        document.getElementById('loading').innerHTML =
-            `<span class="text-danger">데이터 로드 실패<br>${e.message}</span>`;
-    }
+    applyFilters(); // 내부에서 render + TOP5 생성
+    document.getElementById('loading').style.display = 'none';
+  } catch (e) {
+    document.getElementById('loading').innerHTML = `<span class="text-danger">데이터 로드 실패<br>${e.message}</span>`;
+  }
 }
 
-// 날짜 옵션 구성
-function buildDateOptions(sortedDates) {
-    const dateFilter = document.getElementById("dateFilter");
+function autoSelectLatestDateIfMixed(){
+  const dates = Array.from(new Set(articles.map(a => a.date).filter(Boolean))).sort().reverse();
+  if (!dates.length) return;
+  const hasMulti = dates.length > 1;
+  if (hasMulti){
+    // 최신일자 자동 선택
+    document.getElementById("dateFilter").value = dates[0];
+  }
+}
 
-    // 기존 실제 날짜 옵션 제거(최신/전체 2개는 유지)
-    // latest/all 이후의 option만 지우기
-    while (dateFilter.options.length > 2) {
-        dateFilter.remove(2);
-    }
-
-    sortedDates.forEach(date => {
-        let op = document.createElement("option");
-        op.value = date;
-        op.textContent = date;
-        dateFilter.appendChild(op);
-    });
+// 날짜 옵션
+function buildDateOptions() {
+  const dateSet = new Set(articles.map(a => a.date).filter(Boolean));
+  const dateFilter = document.getElementById("dateFilter");
+  const sortedDates = Array.from(dateSet).sort().reverse();
+  sortedDates.forEach(date => {
+    const op = document.createElement("option");
+    op.value = date;
+    op.textContent = date;
+    dateFilter.appendChild(op);
+  });
 }
 
 // 태그 옵션
 function buildTagOptions() {
-    const tagSet = new Set();
-    articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
-    
-    const tagFilter = document.getElementById("tagFilter");
-    // 초기화(전체만 남김)
-    while (tagFilter.options.length > 1) tagFilter.remove(1);
-
-    const sortedTags = Array.from(tagSet).sort();
-    sortedTags.forEach(tag => {
-        let op = document.createElement("option");
-        op.value = tag;
-        op.textContent = tag;
-        tagFilter.appendChild(op);
-    });
+  const tagSet = new Set();
+  articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
+  const tagFilter = document.getElementById("tagFilter");
+  const sortedTags = Array.from(tagSet).sort((a,b)=>a.localeCompare(b,'ko'));
+  sortedTags.forEach(tag => {
+    const op = document.createElement("option");
+    op.value = tag;
+    op.textContent = tag;
+    tagFilter.appendChild(op);
+  });
 }
 
-// -------------------------------
-// 화면 렌더링
-// -------------------------------
+// --- TOP5 키워드 계산/렌더 ---
+function computeTopKeywords(items, topN=5){
+  const counter = new Map();
+  items.forEach(a => {
+    (a.tags || []).forEach(t => {
+      counter.set(t, (counter.get(t) || 0) + 1);
+    });
+  });
+  return Array.from(counter.entries())
+    .sort((x,y)=> y[1]-x[1] || x[0].localeCompare(y[0],'ko'))
+    .slice(0, topN)
+    .map(([tag,count]) => ({ tag, count }));
+}
+
+function renderTopKeywords(items){
+  const top = computeTopKeywords(items, 5);
+  const box = document.getElementById("topkwBox");
+  const chips = document.getElementById("topkwChips");
+  const bars = document.getElementById("topkwBars");
+
+  if (!top.length){
+    box.style.display = "none";
+    return;
+  }
+  box.style.display = "block";
+
+  // chips
+  chips.innerHTML = top.map(x =>
+    `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">#${escapeHtml(x.tag)} (${x.count})</span>`
+  ).join("");
+
+  // bars
+  const max = Math.max(...top.map(x=>x.count));
+  bars.innerHTML = top.map(x => {
+    const pct = max ? Math.round((x.count / max) * 100) : 0;
+    return `
+      <div class="kw-bar-row">
+        <div class="kw-name">#${escapeHtml(x.tag)}</div>
+        <div class="kw-bar-wrap"><div class="kw-bar" style="width:${pct}%"></div></div>
+        <div class="kw-count">${x.count}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// --- 화면 렌더 ---
 function render() {
-    const container = document.getElementById("newsList");
-    container.innerHTML = "";
+  const container = document.getElementById("newsList");
+  container.innerHTML = "";
 
-    document.getElementById("countChip").textContent = `${filtered.length}건`;
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="col-12 text-center py-5 text-muted">
+        <i class="far fa-folder-open fa-2x mb-3"></i><br>
+        검색 결과가 없습니다.
+      </div>`;
+    return;
+  }
 
-    if (filtered.length === 0) {
-        container.innerHTML = `
-            <div class="col-12 text-center py-5 text-muted">
-                <i class="far fa-folder-open fa-2x mb-3"></i><br>
-                검색 결과가 없습니다.
-            </div>`;
-        return;
-    }
+  filtered.forEach(a => {
+    const tagsHtml = (a.tags || []).map(t =>
+      `<span class="tag-badge" onclick="filterByTag('${escapeHtmlAttr(t)}')">#${escapeHtml(t)}</span>`
+    ).join("");
 
-    filtered.forEach(a => {
-        const safeTags = Array.isArray(a.tags) ? a.tags : [];
-        const tagsHtml = safeTags.map(t =>
-            `<span class="tag-badge" onclick="filterByTag('${escapeHtml(t)}')">#${escapeHtml(t)}</span>`
-        ).join("");
-
-        const html = `
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="news-card">
-                    <div class="meta-info">
-                        <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date || "-")}</span>
-                        <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source || "-")}</span>
-                    </div>
-
-                    <h3 class="news-title">${escapeHtml(a.title || "")}</h3>
-
-                    <p class="news-subtitle">${escapeHtml(a.subtitle || "")}</p>
-
-                    <div class="card-bottom">
-                        <div class="tags-wrapper">
-                            ${tagsHtml}
-                        </div>
-                        <a href="${a.url || "#"}" target="_blank" class="btn-link-custom" rel="noopener">
-                            원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML += html;
-    });
+    const html = `
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="news-card">
+          <div class="meta-info">
+            <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date || '')}</span>
+            <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source || '')}</span>
+          </div>
+          <h3 class="news-title">${escapeHtml(a.title || '')}</h3>
+          <p class="news-subtitle">${escapeHtml(a.subtitle || '')}</p>
+          <div class="card-bottom">
+            <div class="tags-wrapper">${tagsHtml}</div>
+            <a href="${escapeHtmlAttr(a.url || '#')}" target="_blank" class="btn-link-custom">
+              원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+    container.innerHTML += html;
+  });
 }
 
-// -------------------------------
-// 필터 로직 (✅ 1번 UX: 기본 최신일 / 검색하면 전체)
-// -------------------------------
+// --- 필터 로직 ---
 function applyFilters() {
-    const dateVal = document.getElementById("dateFilter").value;   // latest / all / YYYY-MM-DD
-    const tagVal  = document.getElementById("tagFilter").value;    // all / tag
-    const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
+  const dateVal = document.getElementById("dateFilter").value;
+  const tagVal = document.getElementById("tagFilter").value;
+  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
 
-    // 검색어 있으면: 날짜를 전체로 풀어 전체기간 검색 (UX 개선)
+  filtered = articles.filter(a => {
+    let ok = true;
+    if (dateVal !== "all") ok = ok && a.date === dateVal;
+    if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
+
     if (keyword) {
-        if (dateVal === "latest") {
-            document.getElementById("dateFilter").value = "all";
-        }
-        document.getElementById("modeChip").textContent = "검색 중: 전체 날짜에서 검색";
-    } else {
-        // 검색어 없으면: 기본은 최신일
-        if (dateVal === "all") {
-            document.getElementById("modeChip").textContent = "전체 날짜 보기";
-        } else if (dateVal === "latest") {
-            document.getElementById("modeChip").textContent = "기본: 최신 날짜 기사만 표시";
-        } else {
-            document.getElementById("modeChip").textContent = `선택 날짜: ${dateVal}`;
-        }
+      const block = `${a.title || ''} ${a.subtitle || ''} ${(a.tags || []).join(' ')}`.toLowerCase();
+      ok = ok && block.includes(keyword);
     }
+    return ok;
+  });
 
-    const currentDateVal = document.getElementById("dateFilter").value;
+  // ✅ TOP5는 "현재 선택 날짜" 기준으로 계산 (dateVal=all이면 전체 기준)
+  const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
+  renderTopKeywords(topScope);
 
-    filtered = articles.filter(a => {
-        let ok = true;
-
-        // 날짜 필터
-        if (currentDateVal === "latest") {
-            if (latestDate) ok = ok && a.date === latestDate;
-        } else if (currentDateVal !== "all") {
-            ok = ok && a.date === currentDateVal;
-        }
-
-        // 태그 필터
-        const tags = Array.isArray(a.tags) ? a.tags : [];
-        if (tagVal !== "all") ok = ok && tags.includes(tagVal);
-
-        // 검색 필터
-        if (keyword) {
-            const block = `${a.title || ""} ${a.subtitle || ""} ${(tags || []).join(" ")}`.toLowerCase();
-            ok = ok && block.includes(keyword);
-        }
-
-        return ok;
-    });
-
-    // 보기 좋은 정렬: 최신 날짜 우선, 같은 날짜면 source/제목
-    filtered.sort((x, y) => {
-        const dx = (x.date || "");
-        const dy = (y.date || "");
-        if (dx !== dy) return dy.localeCompare(dx);
-        return (x.title || "").localeCompare(y.title || "");
-    });
-
-    render();
+  render();
 }
 
-// 태그 클릭으로 필터
 function filterByTag(tag) {
-    document.getElementById("tagFilter").value = tag;
-    applyFilters();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById("tagFilter").value = tag;
+  applyFilters();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// XSS 방지용 간단 escape
-function escapeHtml(str) {
-    return String(str ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+// --- XSS 방지용 최소 이스케이프 ---
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[s]));
 }
+function escapeHtmlAttr(str){ return escapeHtml(str); }
 
 // 이벤트
-document.getElementById("dateFilter").addEventListener("change", () => {
-    const keyword = document.getElementById("searchInput").value.trim();
-    if (!keyword) applyFilters();
-    else applyFilters();
-});
-
+document.getElementById("dateFilter").addEventListener("change", applyFilters);
 document.getElementById("tagFilter").addEventListener("change", applyFilters);
-
-document.getElementById("searchInput").addEventListener("input", () => {
-    const keyword = document.getElementById("searchInput").value.trim();
-    if (!keyword) {
-        // 검색어 지우면: 기본 최신일로 복귀
-        document.getElementById("dateFilter").value = "latest";
-        document.getElementById("modeChip").textContent = "기본: 최신 날짜 기사만 표시";
-    }
-    applyFilters();
-});
+document.getElementById("searchInput").addEventListener("input", applyFilters);
 
 // 시작
 loadJSON();
 </script>
+
 </body>
 </html>
