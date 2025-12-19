@@ -22,7 +22,6 @@
   header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }
   .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }
 
-  /* TOP 키워드 박스 */
   .topkw{
     background:white; border-radius:10px; border:1px solid #eee;
     padding:10px 12px; margin-top:12px; margin-bottom:10px;
@@ -32,14 +31,7 @@
     font-size:0.85rem; font-weight:800; color:#444; margin-bottom:8px;
     display:flex; align-items:center; gap:8px;
   }
-
-  /* ✅ TOP3: # 제거 + 모든 글자 표시(ellipsis 제거) */
-  .topkw-chips{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    margin-bottom:0;
-  }
+  .topkw-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:0; }
   .kw-chip{
     font-size:0.78rem;
     background:#e7f1ff;
@@ -50,8 +42,6 @@
     border:1px solid rgba(0,84,166,0.12);
     user-select:none;
     line-height:1.15;
-
-    /* 텍스트가 잘리지 않게 */
     white-space:nowrap;
   }
   .kw-chip:hover{ filter:brightness(0.98); }
@@ -100,11 +90,9 @@
            onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='inline-flex';">
       <span id="logoFallback" class="badge text-bg-light border" style="display:none; font-weight:900;">KHNP</span>
     </div>
-
     <div class="brand-center">
       <h5>KHNP H2 News Archive</h5>
     </div>
-
     <div class="brand-right" title="Hydrogen">
       <i class="fa-solid fa-droplet"></i>
     </div>
@@ -113,7 +101,6 @@
 
 <div class="container">
 
-  <!-- ✅ TOP3 (그래프/안내문구 없음) -->
   <div class="topkw" id="topkwBox" style="display:none;">
     <div class="topkw-title">
       <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
@@ -122,7 +109,6 @@
     <div class="topkw-chips" id="topkwChips"></div>
   </div>
 
-  <!-- 검색/필터 -->
   <div class="filter-container">
     <div class="row g-2">
       <div class="col-12">
@@ -174,10 +160,11 @@ function sortArticles(list){
   });
 }
 
+/* ✅ 핵심: all.json 로드 (전체 기사) */
 async function loadJSON() {
   try {
-    const res = await fetch("data/latest.json?" + Date.now());
-    if (!res.ok) throw new Error("data/latest.json을 찾을 수 없습니다.");
+    const res = await fetch("data/all.json?" + Date.now());
+    if (!res.ok) throw new Error("data/all.json을 찾을 수 없습니다.");
     articles = await res.json();
 
     articles = (articles || []).map(a => ({
@@ -187,7 +174,9 @@ async function loadJSON() {
 
     buildDateOptions();
     buildTagOptions();
-    autoSelectLatestDateIfMixed();
+
+    // ✅ 첫 화면: 최신 날짜 자동 선택(=오늘 기사만 보이게)
+    selectLatestDateByDefault();
 
     applyFilters();
     document.getElementById('loading').style.display = 'none';
@@ -197,12 +186,11 @@ async function loadJSON() {
   }
 }
 
-function autoSelectLatestDateIfMixed(){
+function selectLatestDateByDefault(){
   const dates = Array.from(new Set(articles.map(a => a.date).filter(Boolean))).sort().reverse();
   if (!dates.length) return;
-  if (dates.length > 1){
-    document.getElementById("dateFilter").value = dates[0];
-  }
+  // 날짜 필터가 아직 all이면 최신 날짜로 바꿔서 '오늘만' 보이게
+  document.getElementById("dateFilter").value = dates[0];
 }
 
 function buildDateOptions() {
@@ -230,7 +218,6 @@ function buildTagOptions() {
   });
 }
 
-/* ✅ TOP3: # 제거 + 숫자 유지 */
 function computeTopKeywords(items, topN=3){
   const counter = new Map();
   items.forEach(a => (a.tags || []).forEach(t => counter.set(t, (counter.get(t) || 0) + 1)));
@@ -314,6 +301,7 @@ function applyFilters() {
 
   filtered = sortArticles(filtered);
 
+  // ✅ TOP3는 선택 날짜 기준(기본값이 최신 날짜라 '오늘' 기준)
   const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
   renderTopKeywords(topScope);
 
