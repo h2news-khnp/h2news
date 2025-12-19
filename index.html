@@ -22,7 +22,7 @@
   header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }
   .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }
 
-  /* TOP5 박스 */
+  /* TOP 키워드 박스 */
   .topkw{
     background:white; border-radius:10px; border:1px solid #eee;
     padding:10px 12px; margin-top:12px; margin-bottom:10px;
@@ -33,30 +33,26 @@
     display:flex; align-items:center; gap:8px;
   }
 
-  /* ✅ 요청 반영: 칩(태그) 더 작게 + 한 줄에 5개 느낌(모바일 기준) */
+  /* ✅ TOP3: # 제거 + 모든 글자 표시(ellipsis 제거) */
   .topkw-chips{
     display:flex;
     flex-wrap:wrap;
     gap:6px;
-    margin-bottom:0; /* 그래프 제거하니 아래 여백 최소화 */
+    margin-bottom:0;
   }
   .kw-chip{
-    font-size:0.72rem;
+    font-size:0.78rem;
     background:#e7f1ff;
     color:var(--khnp-blue);
-    padding:3px 8px;
+    padding:4px 10px;
     border-radius:999px;
     cursor:pointer;
     border:1px solid rgba(0,84,166,0.12);
     user-select:none;
-    line-height:1.1;
+    line-height:1.15;
 
-    /* 5개/줄을 최대한 맞추기 위한 폭 가이드 */
-    flex: 0 1 calc((100% - (6px * 4)) / 5);
-    text-align:center;
+    /* 텍스트가 잘리지 않게 */
     white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
   }
   .kw-chip:hover{ filter:brightness(0.98); }
 
@@ -117,11 +113,11 @@
 
 <div class="container">
 
-  <!-- ✅ TOP5 (문구 제거 + 그래프 제거) -->
+  <!-- ✅ TOP3 (그래프/안내문구 없음) -->
   <div class="topkw" id="topkwBox" style="display:none;">
     <div class="topkw-title">
       <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
-      오늘의 핵심 키워드 TOP 5
+      오늘의 핵심 키워드 TOP 3
     </div>
     <div class="topkw-chips" id="topkwChips"></div>
   </div>
@@ -160,10 +156,8 @@
 let articles = [];
 let filtered = [];
 
-// 신문사 우선순위(원하는대로 변경 가능)
 const SOURCE_PRIORITY = ["에너지신문", "가스신문", "전기신문"];
 
-// 정렬: 태그 개수 ↓ → 신문사 우선순위 ↑ → 제목 ↑
 function sortArticles(list){
   return (list || []).slice().sort((a,b) => {
     const aTags = Array.isArray(a.tags) ? a.tags.length : 0;
@@ -236,8 +230,8 @@ function buildTagOptions() {
   });
 }
 
-// TOP5 키워드 계산/렌더 (✅ 그래프 없이 칩만)
-function computeTopKeywords(items, topN=5){
+/* ✅ TOP3: # 제거 + 숫자 유지 */
+function computeTopKeywords(items, topN=3){
   const counter = new Map();
   items.forEach(a => (a.tags || []).forEach(t => counter.set(t, (counter.get(t) || 0) + 1)));
   return Array.from(counter.entries())
@@ -247,7 +241,7 @@ function computeTopKeywords(items, topN=5){
 }
 
 function renderTopKeywords(items){
-  const top = computeTopKeywords(items, 5);
+  const top = computeTopKeywords(items, 3);
   const box = document.getElementById("topkwBox");
   const chips = document.getElementById("topkwChips");
 
@@ -258,7 +252,7 @@ function renderTopKeywords(items){
   box.style.display = "block";
 
   chips.innerHTML = top.map(x =>
-    `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">#${escapeHtml(x.tag)} (${x.count})</span>`
+    `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">${escapeHtml(x.tag)} (${x.count})</span>`
   ).join("");
 }
 
@@ -320,7 +314,6 @@ function applyFilters() {
 
   filtered = sortArticles(filtered);
 
-  // TOP5는 "선택 날짜" 기준 (all이면 전체)
   const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
   renderTopKeywords(topScope);
 
@@ -333,7 +326,6 @@ function filterByTag(tag) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// XSS 방지용 최소 이스케이프
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, s => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
