@@ -57,13 +57,36 @@
     background:white; border-radius:12px; border:1px solid #eef0f2;
     padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.03);
     transition:transform 0.2s;
+    position:relative; /* ✅ 공유 버튼 배치를 위해 */
   }
   .news-card:active{ transform:scale(0.98); }
+
+  /* ✅ 카드 우상단 공유 버튼 */
+  .share-btn{
+    position:absolute;
+    top:12px;
+    right:12px;
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    border:1px solid #e9ecef;
+    background:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#666;
+    cursor:pointer;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+  .share-btn:hover{ filter:brightness(0.98); }
+  .share-btn i{ font-size:0.95rem; }
+
   .meta-info{
     font-size:0.75rem; color:#888; margin-bottom:0.5rem;
     display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding-right:44px; /* ✅ 공유 버튼 영역 피해가게 */
   }
-  .news-title{ font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:0.5rem; color:#222; }
+  .news-title{ font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:0.5rem; color:#222; padding-right:44px; }
   .news-subtitle{
     font-size:0.9rem; color:#555; line-height:1.5; margin-bottom:1rem;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
@@ -79,6 +102,23 @@
     text-decoration:none; display:flex; align-items:center; white-space:nowrap;
   }
   .btn-link-custom:hover{ text-decoration:underline; }
+
+  /* ✅ 간단 토스트 */
+  .toast-lite{
+    position:fixed;
+    left:50%;
+    bottom:24px;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,0.78);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:12px;
+    font-size:0.85rem;
+    z-index:9999;
+    display:none;
+    max-width:92vw;
+    text-align:center;
+  }
 </style>
 </head>
 
@@ -100,7 +140,6 @@
 </header>
 
 <div class="container">
-
   <div class="topkw" id="topkwBox" style="display:none;">
     <div class="topkw-title">
       <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
@@ -135,8 +174,9 @@
   <div id="loading" class="text-center py-4 text-muted small">
     <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...
   </div>
-
 </div>
+
+<div id="toastLite" class="toast-lite"></div>
 
 <script>
 let articles = [];
@@ -160,7 +200,6 @@ function sortArticles(list){
   });
 }
 
-/* ✅ 핵심: all.json 로드 (전체 기사) */
 async function loadJSON() {
   try {
     const res = await fetch("data/all.json?" + Date.now());
@@ -174,8 +213,6 @@ async function loadJSON() {
 
     buildDateOptions();
     buildTagOptions();
-
-    // ✅ 첫 화면: 최신 날짜 자동 선택(=오늘 기사만 보이게)
     selectLatestDateByDefault();
 
     applyFilters();
@@ -189,7 +226,6 @@ async function loadJSON() {
 function selectLatestDateByDefault(){
   const dates = Array.from(new Set(articles.map(a => a.date).filter(Boolean))).sort().reverse();
   if (!dates.length) return;
-  // 날짜 필터가 아직 all이면 최신 날짜로 바꿔서 '오늘만' 보이게
   document.getElementById("dateFilter").value = dates[0];
 }
 
@@ -243,6 +279,51 @@ function renderTopKeywords(items){
   ).join("");
 }
 
+/* ✅ 공유: 시스템 공유창(가능하면) / 아니면 링크 복사 */
+async function shareArticle(url, title){
+  const shareData = { title: title || "KHNP H2 News", text: title || "", url };
+
+  try{
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)){
+      await navigator.share(shareData);
+      return;
+    }
+  }catch(_e){ /* 사용자 취소 포함, 조용히 무시 */ }
+
+  // fallback: clipboard copy
+  try{
+    if (navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(url);
+      toast("링크를 복사했습니다.");
+      return;
+    }
+  }catch(_e){}
+
+  // 최후: 임시 textarea
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = url;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    toast("링크를 복사했습니다.");
+  }catch(_e){
+    toast("복사가 지원되지 않습니다.");
+  }
+}
+
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById("toastLite");
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.style.display="none"; }, 1400);
+}
+
 function render() {
   const container = document.getElementById("newsList");
   container.innerHTML = "";
@@ -261,18 +342,28 @@ function render() {
       `<span class="tag-badge" onclick="filterByTag('${escapeHtmlAttr(t)}')">#${escapeHtml(t)}</span>`
     ).join("");
 
+    const safeUrl = escapeHtmlAttr(a.url || '#');
+    const safeTitle = escapeHtmlAttr(a.title || '');
+
     container.innerHTML += `
       <div class="col-12 col-md-6 col-lg-4">
         <div class="news-card">
+          <button class="share-btn" type="button" title="공유"
+            onclick="shareArticle('${safeUrl}','${safeTitle}')">
+            <i class="fa-solid fa-share-nodes"></i>
+          </button>
+
           <div class="meta-info">
             <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date || '')}</span>
             <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source || '')}</span>
           </div>
+
           <h3 class="news-title">${escapeHtml(a.title || '')}</h3>
           <p class="news-subtitle">${escapeHtml(a.subtitle || '')}</p>
+
           <div class="card-bottom">
             <div class="tags-wrapper">${tagsHtml}</div>
-            <a href="${escapeHtmlAttr(a.url || '#')}" target="_blank" class="btn-link-custom">
+            <a href="${safeUrl}" target="_blank" class="btn-link-custom">
               원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
             </a>
           </div>
@@ -301,7 +392,6 @@ function applyFilters() {
 
   filtered = sortArticles(filtered);
 
-  // ✅ TOP3는 선택 날짜 기준(기본값이 최신 날짜라 '오늘' 기준)
   const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
   renderTopKeywords(topScope);
 
@@ -327,6 +417,5 @@ document.getElementById("searchInput").addEventListener("input", applyFilters);
 
 loadJSON();
 </script>
-
 </body>
 </html>
