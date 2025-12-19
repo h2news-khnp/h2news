@@ -10,59 +10,40 @@
 
 <style>
   :root { --khnp-blue:#0054A6; --bg-color:#f0f2f5; }
-  body{ background:var(--bg-color); font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif; color:#333; padding-bottom:50px; }
-  header{ background:white; border-bottom:1px solid #ddd; padding:.8rem 0; position:sticky; top:0; z-index:1000; box-shadow:0 2px 5px rgba(0,0,0,.05); }
+  body { background:var(--bg-color); font-family:'Pretendard',system-ui,-apple-system,Roboto,sans-serif; color:#333; padding-bottom:50px; }
+  header { background:#fff; border-bottom:1px solid #ddd; padding:.8rem 0; position:sticky; top:0; z-index:1000; box-shadow:0 2px 5px rgba(0,0,0,.05);}
   .brand-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .brand-left{ display:flex; align-items:center; gap:10px; min-width:40px; }
   .brand-logo{ width:28px; height:28px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid #eee; }
   .brand-center{ display:flex; align-items:center; justify-content:center; flex:1; gap:8px; text-align:center; }
-  header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }
+  header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-.2px; white-space:nowrap;}
   .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }
-
-  .topkw{ background:white; border-radius:10px; border:1px solid #eee; padding:10px 12px; margin-top:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
-  .topkw-title{ font-size:.85rem; font-weight:800; color:#444; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
-  .topkw-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-  .kw-chip{ font-size:.78rem; background:#e7f1ff; color:var(--khnp-blue); padding:4px 10px; border-radius:999px; cursor:pointer; border:1px solid rgba(0,84,166,.12); user-select:none; }
-  .kw-chip:hover{ filter:brightness(.98); }
-  .topkw-bars{ display:flex; flex-direction:column; gap:6px; }
-  .kw-bar-row{ display:flex; align-items:center; gap:10px; }
-  .kw-name{ width:92px; font-size:.78rem; color:#333; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .kw-bar-wrap{ flex:1; height:10px; background:#f1f3f5; border-radius:999px; overflow:hidden; border:1px solid #eee; }
-  .kw-bar{ height:100%; width:0%; background:linear-gradient(90deg,#0054A6,#2b7bd2); border-radius:999px; }
-  .kw-count{ width:30px; text-align:right; font-size:.78rem; color:#666; font-weight:700; }
-
-  .filter-container{ background:white; border-radius:8px; padding:10px; margin-top:10px; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); border:1px solid #eee; }
-  .form-control-sm,.form-select-sm{ font-size:.85rem; background-color:#f8f9fa; border:1px solid #e9ecef; }
-
-  .news-card{ background:white; border-radius:12px; border:1px solid #eef0f2; padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,.03); transition:transform .2s; }
+  .filter-container{ background:#fff; border-radius:8px; padding:10px; margin-top:10px; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); border:1px solid #eee; }
+  .form-control-sm,.form-select-sm{ font-size:.85rem; background:#f8f9fa; border:1px solid #e9ecef; }
+  .news-card{ background:#fff; border-radius:12px; border:1px solid #eef0f2; padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,.03); transition:transform .2s; }
   .news-card:active{ transform:scale(.98); }
   .meta-info{ font-size:.75rem; color:#888; margin-bottom:.5rem; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .news-title{ font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:.5rem; color:#222; }
   .news-subtitle{ font-size:.9rem; color:#555; line-height:1.5; margin-bottom:1rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .card-bottom{ display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid #f1f1f1; padding-top:10px; margin-top:10px; gap:10px; }
   .tags-wrapper{ display:flex; flex-wrap:wrap; gap:4px; max-width:72%; }
-  .tag-badge{ font-size:.7rem; background-color:#e7f1ff; color:var(--khnp-blue); padding:2px 8px; border-radius:4px; cursor:pointer; white-space:nowrap; }
+  .tag-badge{ font-size:.7rem; background:#e7f1ff; color:var(--khnp-blue); padding:2px 8px; border-radius:4px; cursor:pointer; white-space:nowrap; }
   .btn-link-custom{ font-size:.8rem; font-weight:700; color:var(--khnp-blue); text-decoration:none; display:flex; align-items:center; white-space:nowrap; }
   .btn-link-custom:hover{ text-decoration:underline; }
 </style>
 </head>
 
 <body>
-
 <header>
   <div class="container brand-row">
     <div class="brand-left">
-      <img class="brand-logo"
-           src="assets/khnp_logo.png"
-           alt="KHNP"
+      <img class="brand-logo" src="assets/khnp_logo.png" alt="KHNP"
            onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='inline-flex';">
       <span id="logoFallback" class="badge text-bg-light border" style="display:none; font-weight:900;">KHNP</span>
     </div>
-
     <div class="brand-center">
       <h5>KHNP H2 News Archive</h5>
     </div>
-
     <div class="brand-right" title="Hydrogen">
       <i class="fa-solid fa-droplet"></i>
     </div>
@@ -70,19 +51,6 @@
 </header>
 
 <div class="container">
-
-  <!-- TOP5 -->
-  <div class="topkw" id="topkwBox" style="display:none;">
-    <div class="topkw-title">
-      <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
-      오늘의 핵심 키워드 TOP 5
-      <span class="text-muted" style="font-weight:700; font-size:0.78rem;">(클릭하면 태그 필터 적용)</span>
-    </div>
-    <div class="topkw-chips" id="topkwChips"></div>
-    <div class="topkw-bars" id="topkwBars"></div>
-  </div>
-
-  <!-- 검색/필터 -->
   <div class="filter-container">
     <div class="row g-2">
       <div class="col-12">
@@ -109,48 +77,42 @@
   <div id="loading" class="text-center py-4 text-muted small">
     <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...
   </div>
-
 </div>
 
 <script>
-/**
- * ✅ 이 인덱스는 "data/all.json"만 읽는다.
- * - 전체기간 검색 가능
- * - 첫 화면은 최신 날짜 자동 선택
- * - TOP5는 선택 날짜 기준
- *
- * 기대 JSON (data/all.json):
- * [
- *   { "title","subtitle","date","source","url","tags":[...] },
- *   ...
- * ]
- */
-
 let articles = [];
 let filtered = [];
 
+function kstToday(){
+  // 브라우저가 KST면 그대로 OK. (대부분 한국 내부 공유용이면 문제 없음)
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 async function loadJSON() {
   try {
+    // ✅ 전체 검색 가능하게 all.json을 로드
     const res = await fetch("data/all.json?" + Date.now());
     if (!res.ok) throw new Error("data/all.json을 찾을 수 없습니다.");
-
     articles = await res.json();
 
-    // 방어: 구조/필드 누락 대비
-    articles = (Array.isArray(articles) ? articles : []).map(a => ({
-      title: a.title || "",
-      subtitle: a.subtitle || "",
-      date: a.date || "",
-      source: a.source || "",
-      url: a.url || a.link || "",
+    articles = (articles || []).map(a => ({
+      ...a,
       tags: Array.isArray(a.tags) ? a.tags : []
-    })).filter(a => a.url); // url 없는 건 제거
+    }));
 
     buildDateOptions();
     buildTagOptions();
 
-    // ✅ 첫 화면: 최신 날짜 자동 선택
-    autoSelectLatestDate();
+    // ✅ 첫 화면: 당일 기사만 (당일 데이터가 있으면 dateFilter 자동 선택)
+    const today = kstToday();
+    const dates = new Set(articles.map(a => a.date).filter(Boolean));
+    if (dates.has(today)) {
+      document.getElementById("dateFilter").value = today;
+    }
 
     applyFilters();
     document.getElementById('loading').style.display = 'none';
@@ -159,17 +121,10 @@ async function loadJSON() {
   }
 }
 
-function autoSelectLatestDate(){
-  const dates = Array.from(new Set(articles.map(a => a.date).filter(Boolean))).sort().reverse();
-  if (!dates.length) return;
-  document.getElementById("dateFilter").value = dates[0];
-}
-
 function buildDateOptions() {
   const dateSet = new Set(articles.map(a => a.date).filter(Boolean));
   const dateFilter = document.getElementById("dateFilter");
   const sortedDates = Array.from(dateSet).sort().reverse();
-
   sortedDates.forEach(date => {
     const op = document.createElement("option");
     op.value = date;
@@ -181,10 +136,8 @@ function buildDateOptions() {
 function buildTagOptions() {
   const tagSet = new Set();
   articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
-
   const tagFilter = document.getElementById("tagFilter");
   const sortedTags = Array.from(tagSet).sort((a,b)=>a.localeCompare(b,'ko'));
-
   sortedTags.forEach(tag => {
     const op = document.createElement("option");
     op.value = tag;
@@ -193,46 +146,6 @@ function buildTagOptions() {
   });
 }
 
-// --- TOP5 ---
-function computeTopKeywords(items, topN=5){
-  const counter = new Map();
-  items.forEach(a => (a.tags || []).forEach(t => counter.set(t, (counter.get(t)||0)+1)));
-  return Array.from(counter.entries())
-    .sort((x,y)=> y[1]-x[1] || x[0].localeCompare(y[0],'ko'))
-    .slice(0, topN)
-    .map(([tag,count]) => ({ tag, count }));
-}
-
-function renderTopKeywords(scopeItems){
-  const top = computeTopKeywords(scopeItems, 5);
-  const box = document.getElementById("topkwBox");
-  const chips = document.getElementById("topkwChips");
-  const bars = document.getElementById("topkwBars");
-
-  if (!top.length){
-    box.style.display = "none";
-    return;
-  }
-  box.style.display = "block";
-
-  chips.innerHTML = top.map(x =>
-    `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">#${escapeHtml(x.tag)} (${x.count})</span>`
-  ).join("");
-
-  const max = Math.max(...top.map(x=>x.count));
-  bars.innerHTML = top.map(x => {
-    const pct = max ? Math.round((x.count / max) * 100) : 0;
-    return `
-      <div class="kw-bar-row">
-        <div class="kw-name">#${escapeHtml(x.tag)}</div>
-        <div class="kw-bar-wrap"><div class="kw-bar" style="width:${pct}%"></div></div>
-        <div class="kw-count">${x.count}</div>
-      </div>
-    `;
-  }).join("");
-}
-
-// --- render ---
 function render() {
   const container = document.getElementById("newsList");
   container.innerHTML = "";
@@ -240,8 +153,7 @@ function render() {
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="col-12 text-center py-5 text-muted">
-        <i class="far fa-folder-open fa-2x mb-3"></i><br>
-        검색 결과가 없습니다.
+        <i class="far fa-folder-open fa-2x mb-3"></i><br>검색 결과가 없습니다.
       </div>`;
     return;
   }
@@ -251,28 +163,28 @@ function render() {
       `<span class="tag-badge" onclick="filterByTag('${escapeHtmlAttr(t)}')">#${escapeHtml(t)}</span>`
     ).join("");
 
-    container.innerHTML += `
+    const html = `
       <div class="col-12 col-md-6 col-lg-4">
         <div class="news-card">
           <div class="meta-info">
-            <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date)}</span>
-            <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source)}</span>
+            <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date || '')}</span>
+            <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source || '')}</span>
           </div>
-          <h3 class="news-title">${escapeHtml(a.title)}</h3>
-          <p class="news-subtitle">${escapeHtml(a.subtitle)}</p>
+          <h3 class="news-title">${escapeHtml(a.title || '')}</h3>
+          <p class="news-subtitle">${escapeHtml(a.subtitle || '')}</p>
           <div class="card-bottom">
             <div class="tags-wrapper">${tagsHtml}</div>
-            <a href="${escapeHtmlAttr(a.url)}" target="_blank" class="btn-link-custom">
+            <a href="${escapeHtmlAttr(a.url || '#')}" target="_blank" class="btn-link-custom">
               원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
             </a>
           </div>
         </div>
       </div>
     `;
+    container.innerHTML += html;
   });
 }
 
-// --- filters ---
 function applyFilters() {
   const dateVal = document.getElementById("dateFilter").value;
   const tagVal = document.getElementById("tagFilter").value;
@@ -280,20 +192,15 @@ function applyFilters() {
 
   filtered = articles.filter(a => {
     let ok = true;
-
     if (dateVal !== "all") ok = ok && a.date === dateVal;
     if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
 
     if (keyword) {
-      const block = `${a.title} ${a.subtitle} ${(a.tags || []).join(' ')}`.toLowerCase();
+      const block = `${a.title || ''} ${a.subtitle || ''} ${(a.tags || []).join(' ')}`.toLowerCase();
       ok = ok && block.includes(keyword);
     }
     return ok;
   });
-
-  // TOP5는 날짜 기준(전체/선택일)
-  const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
-  renderTopKeywords(topScope);
 
   render();
 }
@@ -304,7 +211,6 @@ function filterByTag(tag) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// --- escape ---
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, s => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -312,14 +218,11 @@ function escapeHtml(str){
 }
 function escapeHtmlAttr(str){ return escapeHtml(str); }
 
-// events
 document.getElementById("dateFilter").addEventListener("change", applyFilters);
 document.getElementById("tagFilter").addEventListener("change", applyFilters);
 document.getElementById("searchInput").addEventListener("input", applyFilters);
 
-// start
 loadJSON();
 </script>
-
 </body>
 </html>
