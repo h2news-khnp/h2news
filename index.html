@@ -57,11 +57,10 @@
     background:white; border-radius:12px; border:1px solid #eef0f2;
     padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.03);
     transition:transform 0.2s;
-    position:relative; /* ✅ 공유 버튼 배치를 위해 */
+    position:relative;
   }
   .news-card:active{ transform:scale(0.98); }
 
-  /* ✅ 카드 우상단 공유 버튼 */
   .share-btn{
     position:absolute;
     top:12px;
@@ -84,7 +83,7 @@
   .meta-info{
     font-size:0.75rem; color:#888; margin-bottom:0.5rem;
     display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-    padding-right:44px; /* ✅ 공유 버튼 영역 피해가게 */
+    padding-right:44px;
   }
   .news-title{ font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:0.5rem; color:#222; padding-right:44px; }
   .news-subtitle{
@@ -103,7 +102,6 @@
   }
   .btn-link-custom:hover{ text-decoration:underline; }
 
-  /* ✅ 간단 토스트 */
   .toast-lite{
     position:fixed;
     left:50%;
@@ -279,16 +277,16 @@ function renderTopKeywords(items){
   ).join("");
 }
 
-/* ✅ 공유: 시스템 공유창(가능하면) / 아니면 링크 복사 */
-async function shareArticle(url, title){
-  const shareData = { title: title || "KHNP H2 News", text: title || "", url };
+/* ✅ q1: "원문 링크만" 공유 */
+async function shareArticle(url){
+  const shareData = { url };
 
   try{
     if (navigator.share && navigator.canShare && navigator.canShare(shareData)){
       await navigator.share(shareData);
       return;
     }
-  }catch(_e){ /* 사용자 취소 포함, 조용히 무시 */ }
+  }catch(_e){}
 
   // fallback: clipboard copy
   try{
@@ -343,13 +341,12 @@ function render() {
     ).join("");
 
     const safeUrl = escapeHtmlAttr(a.url || '#');
-    const safeTitle = escapeHtmlAttr(a.title || '');
 
     container.innerHTML += `
       <div class="col-12 col-md-6 col-lg-4">
         <div class="news-card">
           <button class="share-btn" type="button" title="공유"
-            onclick="shareArticle('${safeUrl}','${safeTitle}')">
+            onclick="shareArticle('${safeUrl}')">
             <i class="fa-solid fa-share-nodes"></i>
           </button>
 
