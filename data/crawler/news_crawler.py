@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 KST = ZoneInfo("Asia/Seoul")
 TIMEOUT = 15
 MAX_PAGES = 3
-DEBUG = True  # 안정화되면 False 권장
+DEBUG = True
 
 KEYWORDS = [
     "수소", "연료전지", "그린수소", "청정수소", "블루수소", "원자력",
@@ -42,6 +42,8 @@ ELECT_BASE = "https://www.electimes.com"
 ENERGY_LIST = ENERGY_BASE + "/news/articleList.html?page={page}&view_type=sm"
 GAS_LIST = GAS_BASE + "/news/articleList.html?page={page}&view_type=sm"
 ELECT_LIST = ELECT_BASE + "/news/articleList.html?page={page}&view_type=sm"
+
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 
 # ==========================================
@@ -82,28 +84,22 @@ def make_tags(text: str) -> list[str]:
     seen = set()
     out = []
     for k in KEYWORDS:
-        kk = k.lower()
-        if kk in low and k not in seen:
+        if k.lower() in low and k not in seen:
             seen.add(k)
             out.append(k)
     return out
 
 def parse_date_flexible(raw: str) -> str | None:
-    """
-    '2025.12.19 10:30', '2025.12.19', '2025-12-19', '12.19 10:30' 등 대응
-    """
     raw = (raw or "").strip()
     if not raw:
         return None
 
-    # full year
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d", "%Y-%m-%d", "%Y-%m-%d %H:%M"):
         try:
             return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
         except ValueError:
             pass
 
-    # no year (assume current year in KST)
     year = kst_now().year
     for fmt in ("%Y.%m.%d %H:%M", "%Y.%m.%d"):
         try:
@@ -113,52 +109,12 @@ def parse_date_flexible(raw: str) -> str | None:
 
     return None
 
-
-# ==========================================
-# 3. 전기신문 잡음 제거 (강화)
-# ==========================================
-
-EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-
-def clean_electimes_noise(text: str) -> str:
-    s = normalize_spaces(text)
-
-    # 이메일 제거
-    s = EMAIL_RE.sub(" ", s)
-
-    # 기자명/기자 표시 제거(예: 홍길동 기자)
-    s = re.sub(r"[가-힣]{2,4}\s*기자", " ", s)
-
-    # 제보/공유/SNS/저작권 등 문구 제거
-    noise = [
-        r"제보", r"기사\s*보내기", r"기사보내기", r"공유", r"SNS", r"트위터", r"페이스북",
-        r"카카오톡", r"밴드", r"구독", r"좋아요",
-        r"무단전재\s*및\s*재배포\s*금지", r"저작권", r"Copyright",
-        r"electimes", r"전기신문"
-    ]
-    for pat in noise:
-        s = re.sub(pat, " ", s, flags=re.IGNORECASE)
-
-    # 너무 흔한 “연락처/메일/제보” 관련 문장 패턴 제거(줄 단위 효과를 내기 위해 구두점 기준도 정리)
-    s = re.sub(r"\b(제보|문의|연락|메일|e-?mail)\b[^.。!?]*", " ", s, flags=re.IGNORECASE)
-
-    return normalize_spaces(s)
-
-def clean_common_noise(text: str) -> str:
-    s = normalize_spaces(text)
-    s = re.sub(r"무단전재\s*및\s*재배포\s*금지", " ", s)
-    s = EMAIL_RE.sub(" ", s)
-    return normalize_spaces(s)
-
 def split_sentences_ko(text: str) -> list[str]:
     if not text:
         return []
     s = normalize_spaces(text)
-
-    # 한국어 '다.' 기준 줄 경계 + 영문 구두점
     s = s.replace("다. ", "다.\n").replace("다.", "다.\n")
     parts = re.split(r"(?<=[.!?])\s+", s)
-
     out = []
     for p in parts:
         for seg in p.split("\n"):
@@ -175,14 +131,93 @@ def summarize_2lines(body: str) -> str:
 
 
 # ==========================================
-# 4. 기사 상세에서 발행일/본문 추출 (핵심)
+# 3. 제목 누락 방지(목록 li에서 title robust 추출)
+# ==========================================
+
+def extract_title_from_li(li) -> str:
+    a = li.select_one("h2.titles a, h4.titles a, a.replace-titles, a[href*='articleView.html']")
+    if not a:
+        return ""
+
+    t = normalize_spaces(a.get_text(" ", strip=True))
+
+    # ✅ 텍스트가 비는 케이스 방어: title/data-title 속성, 주변 노드 fallback
+    if not t:
+        for attr in ("title", "data-title", "aria-label"):
+            v = a.get(attr)
+            if v:
+                t = normalize_spaces(v)
+                if t:
+                    break
+
+    if not t:
+        titles_node = li.select_one(".titles")
+        if titles_node:
+            t = normalize_spaces(titles_node.get_text(" ", strip=True))
+
+    # 마지막 안전장치: a 전체 텍스트 재시도
+    if not t:
+        t = normalize_spaces("".join(a.stripped_strings))
+
+    return t
+
+
+# ==========================================
+# 4. 본문 정제 (공통 + 전기신문 특화)
+# ==========================================
+
+def remove_common_blocks(root_tag):
+    """모든 신문 공통: 본문 영역 안의 script/style/iframe/광고 배너 제거"""
+    if not root_tag:
+        return
+    for t in root_tag.select("script, style, iframe, noscript"):
+        t.decompose()
+    for t in root_tag.select("[id^='AD'], .ad-template, .banner_box, .AD, .adsbygoogle"):
+        t.decompose()
+
+def clean_common_noise(text: str) -> str:
+    s = normalize_spaces(text)
+    s = re.sub(r"무단전재\s*및\s*재배포\s*금지", " ", s)
+    s = EMAIL_RE.sub(" ", s)
+    return normalize_spaces(s)
+
+def remove_electimes_blocks(article_tag):
+    """전기신문: 공통 제거 + 공유/유틸 블록 추가 제거"""
+    remove_common_blocks(article_tag)
+    for t in article_tag.select(".sns, .share, .article-share, .utility, .view-sns, .article-sns, .article-view-sns"):
+        t.decompose()
+
+def clean_electimes_noise_text(text: str) -> str:
+    s = normalize_spaces(text)
+
+    # 이메일 제거
+    s = EMAIL_RE.sub(" ", s)
+
+    # 기자명 제거
+    s = re.sub(r"[가-힣]{2,4}\s*기자", " ", s)
+
+    # 공유/기능 문구 제거
+    noise_phrases = [
+        "카카오스토리", "네이버블로그", "URL복사", "기사스크랩",
+        "본문 글씨 키우기", "본문 글씨 줄이기",
+        "닫기", "바로가기",
+        "공유", "제보", "트위터", "페이스북", "카카오톡", "밴드",
+    ]
+    for ph in noise_phrases:
+        s = s.replace(ph, " ")
+
+    # "(으)로" 등 이상 토큰 제거
+    s = re.sub(r"\(\s*\)\s*\(으\)로", " ", s)
+    s = re.sub(r"\(으\)로", " ", s)
+
+    return normalize_spaces(s)
+
+
+# ==========================================
+# 5. 기사 상세에서 발행일/본문 추출
 # ==========================================
 
 def extract_published_date_from_article(soup: BeautifulSoup) -> str | None:
-    """
-    목록 날짜가 틀리는 경우가 있어, 상세 페이지에서 발행일을 최우선으로 재확인.
-    """
-    # 1) og/article meta
     meta_candidates = [
         ("meta", {"property": "article:published_time"}),
         ("meta", {"name": "article:published_time"}),
@@ -193,13 +228,10 @@ def extract_published_date_from_article(soup: BeautifulSoup) -> str | None:
         m = soup.find(tag, attrs=attrs)
         if m and m.get("content"):
             content = m.get("content").strip()
-            # ISO 8601 like 2025-12-19T08:10:00+09:00
             m2 = re.search(r"(\d{4}-\d{2}-\d{2})", content)
             if m2:
                 return m2.group(1)
 
-    # 2) 흔한 날짜 표기 영역(신문별 약간 다름)
-    # (정확한 셀렉터가 바뀌어도 버티도록 후보를 넓힘)
     sel_candidates = [
         "span.updated", "span.published", "span.date", "em.info.dated", "li.date", "p.date",
         "div.article-head em", "div.article-head span",
@@ -212,7 +244,6 @@ def extract_published_date_from_article(soup: BeautifulSoup) -> str | None:
             if dt:
                 return dt
 
-    # 3) 본문 내 패턴(YYYY.MM.DD / YYYY-MM-DD)
     text = soup.get_text(" ", strip=True)
     m3 = re.search(r"(\d{4}[.-]\d{2}[.-]\d{2})", text)
     if m3:
@@ -229,16 +260,37 @@ def extract_body_from_article(url: str, source: str) -> tuple[str, str | None]:
 
     published = extract_published_date_from_article(soup)
 
-    # 본문 후보 셀렉터(국내 기사 CMS 공통)
+    # 전기신문
+    if source == "전기신문":
+        article_tag = soup.select_one("article#article-view-content-div") or soup.select_one("div#article-view-content-div")
+        if article_tag:
+            remove_electimes_blocks(article_tag)
+
+            parts = []
+            sub = article_tag.select_one("h4.subheading")
+            if sub:
+                parts.append(sub.get_text(" ", strip=True))
+
+            # ✅ p 중심
+            for p in article_tag.find_all("p"):
+                txt = p.get_text(" ", strip=True)
+                if txt:
+                    parts.append(txt)
+
+            body = normalize_spaces(" ".join(parts))
+            body = clean_common_noise(body)
+            body = clean_electimes_noise_text(body)
+            return (body if len(body) >= 60 else ""), published
+
+    # 에너지/가스 포함 공통
     selectors = [
-        "div#article-view-content-div",   # 한국지역/에너지신문 계열 자주
+        "div#article-view-content-div",
         "div#articleBody",
         "div.article-body",
         "div.article-text",
         "article",
         "div#articleBodyContents",
     ]
-
     body_el = None
     for sel in selectors:
         body_el = soup.select_one(sel)
@@ -247,45 +299,43 @@ def extract_body_from_article(url: str, source: str) -> tuple[str, str | None]:
 
     texts = []
     if body_el:
-        for t in body_el.find_all(["p", "span", "div"], recursive=True):
-            txt = t.get_text(" ", strip=True)
-            if txt:
-                texts.append(txt)
+        remove_common_blocks(body_el)
+
+        # ✅ 공통도 p 위주
+        for p in body_el.find_all("p"):
+            t = p.get_text(" ", strip=True)
+            if t:
+                texts.append(t)
+
+        # p가 너무 없으면 안전 fallback
+        if len(" ".join(texts)) < 80:
+            fallback = body_el.get_text(" ", strip=True)
+            if fallback:
+                texts = [fallback]
     else:
         for p in soup.select("p"):
-            txt = p.get_text(" ", strip=True)
-            if txt:
-                texts.append(txt)
+            t = p.get_text(" ", strip=True)
+            if t:
+                texts.append(t)
 
     body = normalize_spaces(" ".join(texts))
-
-    # 신문별 정제
     body = clean_common_noise(body)
-    if source == "전기신문":
-        body = clean_electimes_noise(body)
-
-    if len(body) < 60:
-        # 너무 짧으면 본문 추출 실패 가능 → 빈값 처리
-        return "", published
-
-    return body, published
+    return (body if len(body) >= 60 else ""), published
 
 
 # ==========================================
-# 5. 목록 크롤러 (1~3페이지)
-#    - 제목 키워드 OR 본문 키워드 통과
-#    - 상세 발행일 우선 적용
+# 6. 목록 크롤러 (1~3페이지)
 # ==========================================
 
 def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
     results = []
+
     for page in range(1, MAX_PAGES + 1):
         page_url = list_url.format(page=page)
         soup = get_soup(page_url)
         if not soup:
             continue
 
-        # 잡음 최소화를 위해 type1 우선
         items = soup.select("#section-list .type1 li")
         if not items:
             items = soup.select("#section-list li")
@@ -299,25 +349,28 @@ def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
                 if not a:
                     continue
 
-                title = a.get_text(strip=True)
                 href = (a.get("href", "") or "").strip()
                 if not href:
                     continue
                 url = href if href.startswith("http") else base_url + href
 
+                title = extract_title_from_li(li)
                 total += 1
 
-                # 상세 본문/발행일
+                # ✅ 타이틀이 비면 스킵(카드에서 제목 공백 방지)
+                if not title:
+                    if DEBUG:
+                        print(f"[WARN] {source} 제목 비어 스킵: {url}")
+                    continue
+
                 body, pub_date = extract_body_from_article(url, source)
 
-                # 관련성 판단: 제목 또는 본문
                 if not (contains_keyword(title) or contains_keyword(body)):
                     continue
 
                 tags = make_tags(title + " " + body)
                 subtitle = summarize_2lines(body)
 
-                # 날짜: 상세 발행일 우선, 없으면 목록 날짜
                 list_date_el = li.select_one("em.info.dated, em.replace-date, span.byline span")
                 list_date = parse_date_flexible(list_date_el.get_text(" ", strip=True) if list_date_el else "")
                 date = pub_date or list_date or today_kst_str()
@@ -329,7 +382,7 @@ def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
                     "date": date,
                     "tags": tags,
                     "subtitle": subtitle,
-                    "is_important": 1 if tags else 0,
+                    "is_important": 1 if tags else 0
                 })
                 kept += 1
 
@@ -344,10 +397,7 @@ def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
 
 
 # ==========================================
-# 6. 저장 로직
-#    - all.json: 누적(중복 URL 제거)
-#    - by_date: 날짜별 파일
-#    - latest.json: '당일(KST)' 기사만
+# 7. 저장 로직 (all / by_date / latest(today))
 # ==========================================
 
 def load_all_existing() -> list[dict]:
@@ -367,7 +417,6 @@ def dedup_by_url(items: list[dict]) -> list[dict]:
     return list(d.values())
 
 def sort_articles(items: list[dict]) -> list[dict]:
-    # 최신 날짜, 중요도, 소스 순
     return sorted(
         items,
         key=lambda x: (x.get("date", ""), x.get("is_important", 0), x.get("source", ""), x.get("title", "")),
@@ -397,18 +446,14 @@ def job():
 
     print(f"\n[신규 수집] {len(new_items)}건\n")
 
-    # 누적(all.json) = 기존 + 신규, URL 기준 dedup
     existing = load_all_existing()
     merged = dedup_by_url(existing + new_items)
     merged = sort_articles(merged)
 
-    # all.json 저장 (누적)
     ALL_JSON_PATH.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # 날짜별 저장
     by_date = write_by_date(merged)
 
-    # ✅ latest.json은 "당일(KST)"만
     today = today_kst_str()
     latest_items = sort_articles(by_date.get(today, []))
     LATEST_JSON_PATH.write_text(json.dumps(latest_items, ensure_ascii=False, indent=2), encoding="utf-8")
