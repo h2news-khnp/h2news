@@ -22,25 +22,43 @@
   header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }
   .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }
 
+  /* TOP5 박스 */
   .topkw{
     background:white; border-radius:10px; border:1px solid #eee;
     padding:10px 12px; margin-top:12px; margin-bottom:10px;
     box-shadow:0 1px 3px rgba(0,0,0,0.05);
   }
-  .topkw-title{ font-size:0.85rem; font-weight:800; color:#444; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
-  .topkw-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .topkw-title{
+    font-size:0.85rem; font-weight:800; color:#444; margin-bottom:8px;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* ✅ 요청 반영: 칩(태그) 더 작게 + 한 줄에 5개 느낌(모바일 기준) */
+  .topkw-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:0; /* 그래프 제거하니 아래 여백 최소화 */
+  }
   .kw-chip{
-    font-size:0.78rem; background:#e7f1ff; color:var(--khnp-blue);
-    padding:4px 10px; border-radius:999px; cursor:pointer;
-    border:1px solid rgba(0,84,166,0.12); user-select:none;
+    font-size:0.72rem;
+    background:#e7f1ff;
+    color:var(--khnp-blue);
+    padding:3px 8px;
+    border-radius:999px;
+    cursor:pointer;
+    border:1px solid rgba(0,84,166,0.12);
+    user-select:none;
+    line-height:1.1;
+
+    /* 5개/줄을 최대한 맞추기 위한 폭 가이드 */
+    flex: 0 1 calc((100% - (6px * 4)) / 5);
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
   .kw-chip:hover{ filter:brightness(0.98); }
-  .topkw-bars{ display:flex; flex-direction:column; gap:6px; }
-  .kw-bar-row{ display:flex; align-items:center; gap:10px; }
-  .kw-name{ width:92px; font-size:0.78rem; color:#333; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .kw-bar-wrap{ flex:1; height:10px; background:#f1f3f5; border-radius:999px; overflow:hidden; border:1px solid #eee; }
-  .kw-bar{ height:100%; width:0%; background:linear-gradient(90deg,#0054A6,#2b7bd2); border-radius:999px; }
-  .kw-count{ width:30px; text-align:right; font-size:0.78rem; color:#666; font-weight:700; }
 
   .filter-container{
     background:white; border-radius:8px; padding:10px;
@@ -99,15 +117,13 @@
 
 <div class="container">
 
-  <!-- 오늘의 핵심 키워드 TOP5 -->
+  <!-- ✅ TOP5 (문구 제거 + 그래프 제거) -->
   <div class="topkw" id="topkwBox" style="display:none;">
     <div class="topkw-title">
       <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
       오늘의 핵심 키워드 TOP 5
-      <span class="text-muted" style="font-weight:700; font-size:0.78rem;">(클릭하면 태그 필터 적용)</span>
     </div>
     <div class="topkw-chips" id="topkwChips"></div>
-    <div class="topkw-bars" id="topkwBars"></div>
   </div>
 
   <!-- 검색/필터 -->
@@ -141,21 +157,13 @@
 </div>
 
 <script>
-/**
- * data/latest.json을 불러옵니다.
- * [
- *   { "title", "subtitle", "date", "source", "url", "tags":[...] },
- *   ...
- * ]
- */
-
 let articles = [];
 let filtered = [];
 
-// ✅ 신문사 우선순위(원하는대로 변경 가능)
+// 신문사 우선순위(원하는대로 변경 가능)
 const SOURCE_PRIORITY = ["에너지신문", "가스신문", "전기신문"];
 
-// ✅ 정렬: 태그 개수 ↓ → 신문사 우선순위 ↑ → 제목 ↑
+// 정렬: 태그 개수 ↓ → 신문사 우선순위 ↑ → 제목 ↑
 function sortArticles(list){
   return (list || []).slice().sort((a,b) => {
     const aTags = Array.isArray(a.tags) ? a.tags.length : 0;
@@ -178,7 +186,6 @@ async function loadJSON() {
     if (!res.ok) throw new Error("data/latest.json을 찾을 수 없습니다.");
     articles = await res.json();
 
-    // 방어: tags 누락 대비
     articles = (articles || []).map(a => ({
       ...a,
       tags: Array.isArray(a.tags) ? a.tags : []
@@ -188,10 +195,11 @@ async function loadJSON() {
     buildTagOptions();
     autoSelectLatestDateIfMixed();
 
-    applyFilters(); // render + top5
+    applyFilters();
     document.getElementById('loading').style.display = 'none';
   } catch (e) {
-    document.getElementById('loading').innerHTML = `<span class="text-danger">데이터 로드 실패<br>${escapeHtml(e.message)}</span>`;
+    document.getElementById('loading').innerHTML =
+      `<span class="text-danger">데이터 로드 실패<br>${escapeHtml(e.message)}</span>`;
   }
 }
 
@@ -203,7 +211,6 @@ function autoSelectLatestDateIfMixed(){
   }
 }
 
-// 날짜 옵션
 function buildDateOptions() {
   const dateSet = new Set(articles.map(a => a.date).filter(Boolean));
   const dateFilter = document.getElementById("dateFilter");
@@ -216,7 +223,6 @@ function buildDateOptions() {
   });
 }
 
-// 태그 옵션
 function buildTagOptions() {
   const tagSet = new Set();
   articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
@@ -230,14 +236,10 @@ function buildTagOptions() {
   });
 }
 
-// --- TOP5 키워드 계산/렌더 ---
+// TOP5 키워드 계산/렌더 (✅ 그래프 없이 칩만)
 function computeTopKeywords(items, topN=5){
   const counter = new Map();
-  items.forEach(a => {
-    (a.tags || []).forEach(t => {
-      counter.set(t, (counter.get(t) || 0) + 1);
-    });
-  });
+  items.forEach(a => (a.tags || []).forEach(t => counter.set(t, (counter.get(t) || 0) + 1)));
   return Array.from(counter.entries())
     .sort((x,y)=> y[1]-x[1] || x[0].localeCompare(y[0],'ko'))
     .slice(0, topN)
@@ -248,7 +250,6 @@ function renderTopKeywords(items){
   const top = computeTopKeywords(items, 5);
   const box = document.getElementById("topkwBox");
   const chips = document.getElementById("topkwChips");
-  const bars = document.getElementById("topkwBars");
 
   if (!top.length){
     box.style.display = "none";
@@ -259,21 +260,8 @@ function renderTopKeywords(items){
   chips.innerHTML = top.map(x =>
     `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">#${escapeHtml(x.tag)} (${x.count})</span>`
   ).join("");
-
-  const max = Math.max(...top.map(x=>x.count));
-  bars.innerHTML = top.map(x => {
-    const pct = max ? Math.round((x.count / max) * 100) : 0;
-    return `
-      <div class="kw-bar-row">
-        <div class="kw-name">#${escapeHtml(x.tag)}</div>
-        <div class="kw-bar-wrap"><div class="kw-bar" style="width:${pct}%"></div></div>
-        <div class="kw-count">${x.count}</div>
-      </div>
-    `;
-  }).join("");
 }
 
-// --- 화면 렌더 ---
 function render() {
   const container = document.getElementById("newsList");
   container.innerHTML = "";
@@ -292,7 +280,7 @@ function render() {
       `<span class="tag-badge" onclick="filterByTag('${escapeHtmlAttr(t)}')">#${escapeHtml(t)}</span>`
     ).join("");
 
-    const html = `
+    container.innerHTML += `
       <div class="col-12 col-md-6 col-lg-4">
         <div class="news-card">
           <div class="meta-info">
@@ -310,11 +298,9 @@ function render() {
         </div>
       </div>
     `;
-    container.innerHTML += html;
   });
 }
 
-// --- 필터 로직 ---
 function applyFilters() {
   const dateVal = document.getElementById("dateFilter").value;
   const tagVal = document.getElementById("tagFilter").value;
@@ -332,7 +318,6 @@ function applyFilters() {
     return ok;
   });
 
-  // ✅ Q2 반영: 카드 정렬 적용
   filtered = sortArticles(filtered);
 
   // TOP5는 "선택 날짜" 기준 (all이면 전체)
@@ -348,7 +333,7 @@ function filterByTag(tag) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// --- XSS 방지용 최소 이스케이프 ---
+// XSS 방지용 최소 이스케이프
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, s => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -356,12 +341,10 @@ function escapeHtml(str){
 }
 function escapeHtmlAttr(str){ return escapeHtml(str); }
 
-// 이벤트
 document.getElementById("dateFilter").addEventListener("change", applyFilters);
 document.getElementById("tagFilter").addEventListener("change", applyFilters);
 document.getElementById("searchInput").addEventListener("input", applyFilters);
 
-// 시작
 loadJSON();
 </script>
 
