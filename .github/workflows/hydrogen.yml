@@ -3,10 +3,15 @@ name: Daily Hydrogen News Crawler
 on:
   workflow_dispatch:
   schedule:
-    # KST 08:00 = UTC 23:00
+    # =========================
+    # KST 기준 자동 실행
+    # =========================
+    # KST 08:00  → UTC 23:00 (전날)
     - cron: "0 23 * * *"
+    # KST 15:00  → UTC 06:00
+    - cron: "0 6 * * *"
 
-# 🔹 GITHUB_TOKEN 권한을 명시적으로 부여
+# GitHub Pages / JSON 커밋을 위한 권한
 permissions:
   contents: write
 
@@ -15,42 +20,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ 저장소 체크아웃
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2️⃣ Python 세팅
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 3️⃣ 의존성 설치
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
+      # 4️⃣ 크롤러 실행
       - name: Run crawler
         env:
           GITHUB_ACTIONS: "true"
         run: |
-          echo "=== 현재 디렉토리 구조 ==="
+          echo "=================================="
+          echo "🕒 실행 시각 (UTC)"
+          date -u
+          echo "🕒 실행 시각 (KST)"
+          TZ=Asia/Seoul date
+          echo "=================================="
+
+          echo "📂 현재 디렉토리"
           ls
-          echo "=== data 디렉토리 (before) ==="
-          ls -R data || echo "no data dir yet"
-          echo "=== 크롤러 실행 ==="
+
+          echo "📂 data 디렉토리 (before)"
+          ls -R data || echo "data 폴더 없음"
+
+          echo "🚀 뉴스 크롤러 실행"
           python data/crawler/news_crawler.py
-          echo "=== data 디렉토리 (after) ==="
+
+          echo "📂 data 디렉토리 (after)"
           ls -R data
 
+      # 5️⃣ 변경사항 커밋 & 푸시
       - name: Commit & Push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # data 폴더 전체를 스테이징
           git add data
-
           git status
 
-          # 변경 있을 때만 커밋
-          git commit -m "Daily update" || echo "No changes to commit"
+          # 변경 있을 때만 커밋 (중복 실행 안전)
+          git commit -m "Daily hydrogen news update" || echo "No changes to commit"
+
           git push
