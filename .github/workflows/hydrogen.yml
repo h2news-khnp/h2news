@@ -6,12 +6,18 @@ on:
     # =========================
     # KST 기준 자동 실행
     # =========================
-    # KST 08:00  → UTC 23:00 (전날)
+
+    # 🔹 매일 뉴스 크롤링
+    # KST 08:00 → UTC 23:00 (전날)
     - cron: "0 23 * * *"
-    # KST 15:00  → UTC 06:00
+
+    # KST 15:00 → UTC 06:00
     - cron: "0 6 * * *"
 
-# GitHub Pages / JSON 커밋을 위한 권한
+    # 🔹 주간 미니 리포트
+    # KST 금요일 15:20 → UTC 금요일 06:20
+    - cron: "20 6 * * 5"
+
 permissions:
   contents: write
 
@@ -36,10 +42,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      # 4️⃣ 크롤러 실행
-      - name: Run crawler
-        env:
-          GITHUB_ACTIONS: "true"
+      # 4️⃣ 일간 뉴스 크롤러 실행
+      - name: Run daily crawler
         run: |
           echo "=================================="
           echo "🕒 실행 시각 (UTC)"
@@ -48,19 +52,16 @@ jobs:
           TZ=Asia/Seoul date
           echo "=================================="
 
-          echo "📂 현재 디렉토리"
-          ls
-
-          echo "📂 data 디렉토리 (before)"
-          ls -R data || echo "data 폴더 없음"
-
-          echo "🚀 뉴스 크롤러 실행"
           python data/crawler/news_crawler.py
 
-          echo "📂 data 디렉토리 (after)"
-          ls -R data
+      # 5️⃣ 주간 미니 리포트 생성 (금요일 15:20 KST 전용)
+      - name: Build weekly mini report
+        if: ${{ github.event_name == 'schedule' && github.event.schedule == '20 6 * * 5' }}
+        run: |
+          echo "📊 주간 트렌드 미니 리포트 생성"
+          python data/crawler/make_weekly.py
 
-      # 5️⃣ 변경사항 커밋 & 푸시
+      # 6️⃣ 변경사항 커밋 & 푸시
       - name: Commit & Push
         run: |
           git config user.name "github-actions[bot]"
@@ -69,7 +70,5 @@ jobs:
           git add data
           git status
 
-          # 변경 있을 때만 커밋 (중복 실행 안전)
-          git commit -m "Daily hydrogen news update" || echo "No changes to commit"
-
+          git commit -m "Auto update (daily news / weekly report)" || echo "No changes to commit"
           git push
