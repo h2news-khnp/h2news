@@ -17,17 +17,7 @@
   }
   .brand-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .brand-left{ display:flex; align-items:center; gap:10px; min-width:40px; }
-  .brand-logo{
-  width:28px;
-  height:28px;
-  object-fit:contain;
-  border-radius:6px;
-
-  /* ✅ 네모(테두리/배경) 제거 */
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  }
+  .brand-logo{ width:28px; height:28px; object-fit:contain; border-radius:6px; background:#fff; border:none; box-shadow:none; }
   .brand-center{ display:flex; align-items:center; justify-content:center; flex:1; gap:8px; text-align:center; }
   header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }
   .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }
@@ -95,10 +85,7 @@
     display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding-right:44px;
   }
-  .news-title{
-    font-size:1.05rem; font-weight:800; line-height:1.4;
-    margin-bottom:0.5rem; color:#222; padding-right:44px;
-  }
+  .news-title{ font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:0.5rem; color:#222; padding-right:44px; }
   .news-subtitle{
     font-size:0.9rem; color:#555; line-height:1.5; margin-bottom:1rem;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
@@ -151,6 +138,19 @@
 </header>
 
 <div class="container">
+
+  <!-- ✅ 주간 트렌드 미니 리포트 -->
+  <div class="topkw" id="weeklyBox" style="display:none;">
+    <div class="topkw-title">
+      <i class="fa-solid fa-calendar-week" style="color:var(--khnp-blue)"></i>
+      주간 트렌드 미니 리포트
+    </div>
+    <div id="weeklyOneLiner" class="text-muted small" style="font-weight:700; line-height:1.35;"></div>
+    <div id="weeklyStats" class="small" style="margin-top:8px;"></div>
+    <div id="weeklyTop" class="topkw-chips" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- ✅ 오늘 TOP3 -->
   <div class="topkw" id="topkwBox" style="display:none;">
     <div class="topkw-title">
       <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
@@ -213,7 +213,6 @@ function sortArticles(list){
 
 async function loadJSON() {
   try {
-    // ✅ all.json을 항상 유지/사용 (과거 기사 검색 가능)
     const res = await fetch("data/all.json?" + Date.now());
     if (!res.ok) throw new Error("data/all.json을 찾을 수 없습니다.");
     articles = await res.json();
@@ -228,6 +227,10 @@ async function loadJSON() {
     selectLatestDateByDefault();
 
     applyFilters();
+
+    // ✅ 주간 리포트 로드 (존재할 때만 표시)
+    await loadWeekly();
+
     document.getElementById('loading').style.display = 'none';
   } catch (e) {
     document.getElementById('loading').innerHTML =
@@ -291,33 +294,53 @@ function renderTopKeywords(items){
   ).join("");
 }
 
-/**
- * ✅ 카카오톡에서 제목 2번 문제 해결:
- * - "URL만" 공유한다 (텍스트/제목 절대 같이 보내지 않음)
- * - 브라우저가 문서 제목을 자동으로 끼워넣는 케이스 대비: 공유 직전 document.title을 잠깐 비움
- * - 실패 시: 링크만 복사
- */
-async function shareUrlOnly(url){
-  const originalTitle = document.title;
+/* ✅ weekly.json 로드 */
+async function loadWeekly(){
+  try{
+    const res = await fetch("data/weekly.json?" + Date.now());
+    if(!res.ok) return;
+
+    const w = await res.json();
+    if(!w || !w.range || !w.total){
+      document.getElementById("weeklyBox").style.display = "none";
+      return;
+    }
+
+    document.getElementById("weeklyBox").style.display = "block";
+    document.getElementById("weeklyOneLiner").textContent = w.one_liner || "";
+
+    const from = (w.range && w.range.from) ? w.range.from : "";
+    const to = (w.range && w.range.to) ? w.range.to : "";
+    const total = w.total || 0;
+
+    const src1 = (w.by_source && w.by_source[0]) ? `${w.by_source[0].source} ${w.by_source[0].count}건` : "";
+    const src2 = (w.by_source && w.by_source[1]) ? `${w.by_source[1].source} ${w.by_source[1].count}건` : "";
+
+    document.getElementById("weeklyStats").innerHTML =
+      `기간: <b>${escapeHtml(from)} ~ ${escapeHtml(to)}</b> · 주간 기사: <b>${total}건</b><br>` +
+      (src1 ? `신문사: ${escapeHtml(src1)}${src2 ? `, ${escapeHtml(src2)}` : ""}` : "");
+
+    const chips = (w.top_keywords || []).slice(0,3).map(x =>
+      `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">${escapeHtml(x.tag)} (${x.count})</span>`
+    ).join("");
+    document.getElementById("weeklyTop").innerHTML = chips;
+
+  }catch(e){
+    document.getElementById("weeklyBox").style.display = "none";
+  }
+}
+
+/* 공유: 링크만 공유/복사 */
+async function shareArticle(url){
+  const shareData = { url };
 
   try{
-    if (navigator.share){
-      document.title = ""; // 자동 title 첨부 방지
-      const shareData = { url: url };
-
-      if (!navigator.canShare || navigator.canShare(shareData)){
-        await navigator.share(shareData);
-        document.title = originalTitle;
-        return;
-      }
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)){
+      await navigator.share(shareData);
+      return;
     }
-  }catch(_e){
-    // ignore
-  }finally{
-    document.title = originalTitle;
-  }
+  }catch(_e){}
 
-  // fallback: clipboard copy (URL만)
   try{
     if (navigator.clipboard && window.isSecureContext){
       await navigator.clipboard.writeText(url);
@@ -373,8 +396,8 @@ function render() {
     container.innerHTML += `
       <div class="col-12 col-md-6 col-lg-4">
         <div class="news-card">
-          <!-- ✅ title 속성 제거(툴팁 글자 안 뜸) -->
-          <button class="share-btn" type="button" onclick="shareUrlOnly('${safeUrl}')">
+          <button class="share-btn" type="button" aria-label="share"
+            onclick="shareArticle('${safeUrl}')">
             <i class="fa-solid fa-share-nodes"></i>
           </button>
 
