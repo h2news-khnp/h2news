@@ -146,7 +146,6 @@
     <div class="topkw-chips" id="topkwChips"></div>
   </div>
 
-  <!-- ✅ 검색/필터 (버튼 방식) -->
   <div class="filter-container">
     <div class="row g-2">
       <div class="col-12">
@@ -218,7 +217,6 @@ async function loadJSON() {
     articles = (articles || []).map(a => ({
       ...a,
       tags: Array.isArray(a.tags) ? a.tags : [],
-      // ✅ 검색 성능: 미리 검색용 텍스트 만들어 둠 (렉 감소)
       _searchText: (
         (a.title || "") + " " +
         (a.subtitle || "") + " " +
@@ -294,7 +292,6 @@ function renderTopKeywords(items){
   ).join("");
 }
 
-/* ✅ 링크 공유 */
 async function shareArticle(url){
   const shareData = { url };
   try{
@@ -392,10 +389,7 @@ function applyFilters() {
     let ok = true;
     if (dateVal !== "all") ok = ok && a.date === dateVal;
     if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
-
-    if (keyword) {
-      ok = ok && (a._searchText || "").includes(keyword);
-    }
+    if (keyword) ok = ok && (a._searchText || "").includes(keyword);
     return ok;
   });
 
@@ -413,8 +407,13 @@ function filterByTag(tag) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function commitSearch(){
+/* ✅ 핵심: 검색 버튼/엔터 누르면 날짜를 전체(all)로 강제 */
+function commitSearch(forceAllDates=true){
   committedKeyword = document.getElementById("searchInput").value || "";
+
+  if (forceAllDates){
+    document.getElementById("dateFilter").value = "all";
+  }
   applyFilters();
 }
 
@@ -431,18 +430,16 @@ function escapeHtml(str){
 }
 function escapeHtmlAttr(str){ return escapeHtml(str); }
 
-/* ✅ 이벤트: 자동검색 제거, 버튼/엔터로만 검색 */
 document.getElementById("dateFilter").addEventListener("change", applyFilters);
 document.getElementById("tagFilter").addEventListener("change", applyFilters);
 
-document.getElementById("searchBtn").addEventListener("click", commitSearch);
+document.getElementById("searchBtn").addEventListener("click", () => commitSearch(true));
 document.getElementById("clearBtn").addEventListener("click", clearSearch);
 
-// 엔터로 검색
 document.getElementById("searchInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
-    commitSearch();
+    commitSearch(true);
   }
 });
 
