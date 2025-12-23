@@ -17,7 +17,7 @@
   }
   .brand-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .brand-left{ display:flex; align-items:center; gap:10px; min-width:40px; }
-  .brand-logo{ width:28px; height:28px; object-fit:contain; border-radius:6px; background:#fff; border:none; box-shadow:none; }
+  .brand-logo{ width:28px; height:28px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid #eee; }
   .brand-center{ display:flex; align-items:center; justify-content:center; flex:1; gap:8px; text-align:center; }
   header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }
   .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }
@@ -138,19 +138,6 @@
 </header>
 
 <div class="container">
-
-  <!-- ✅ 주간 트렌드 미니 리포트 -->
-  <div class="topkw" id="weeklyBox" style="display:none;">
-    <div class="topkw-title">
-      <i class="fa-solid fa-calendar-week" style="color:var(--khnp-blue)"></i>
-      주간 트렌드 미니 리포트
-    </div>
-    <div id="weeklyOneLiner" class="text-muted small" style="font-weight:700; line-height:1.35;"></div>
-    <div id="weeklyStats" class="small" style="margin-top:8px;"></div>
-    <div id="weeklyTop" class="topkw-chips" style="margin-top:10px;"></div>
-  </div>
-
-  <!-- ✅ 오늘 TOP3 -->
   <div class="topkw" id="topkwBox" style="display:none;">
     <div class="topkw-title">
       <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
@@ -159,14 +146,22 @@
     <div class="topkw-chips" id="topkwChips"></div>
   </div>
 
+  <!-- ✅ 검색/필터 (버튼 방식) -->
   <div class="filter-container">
     <div class="row g-2">
       <div class="col-12">
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
           <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 요약, 태그 검색...">
+          <button id="searchBtn" class="btn btn-sm btn-primary" style="background:var(--khnp-blue); border-color:var(--khnp-blue);">
+            검색
+          </button>
+          <button id="clearBtn" class="btn btn-sm btn-outline-secondary">
+            초기화
+          </button>
         </div>
       </div>
+
       <div class="col-6">
         <select id="dateFilter" class="form-select form-select-sm">
           <option value="all">날짜: 전체</option>
@@ -192,6 +187,9 @@
 <script>
 let articles = [];
 let filtered = [];
+
+// ✅ 검색 확정값(버튼/엔터로만 바뀜)
+let committedKeyword = "";
 
 const SOURCE_PRIORITY = ["에너지신문", "가스신문", "전기신문"];
 
@@ -219,7 +217,13 @@ async function loadJSON() {
 
     articles = (articles || []).map(a => ({
       ...a,
-      tags: Array.isArray(a.tags) ? a.tags : []
+      tags: Array.isArray(a.tags) ? a.tags : [],
+      // ✅ 검색 성능: 미리 검색용 텍스트 만들어 둠 (렉 감소)
+      _searchText: (
+        (a.title || "") + " " +
+        (a.subtitle || "") + " " +
+        (Array.isArray(a.tags) ? a.tags.join(" ") : "")
+      ).toLowerCase()
     }));
 
     buildDateOptions();
@@ -227,10 +231,6 @@ async function loadJSON() {
     selectLatestDateByDefault();
 
     applyFilters();
-
-    // ✅ 주간 리포트 로드 (존재할 때만 표시)
-    await loadWeekly();
-
     document.getElementById('loading').style.display = 'none';
   } catch (e) {
     document.getElementById('loading').innerHTML =
@@ -294,46 +294,9 @@ function renderTopKeywords(items){
   ).join("");
 }
 
-/* ✅ weekly.json 로드 */
-async function loadWeekly(){
-  try{
-    const res = await fetch("data/weekly.json?" + Date.now());
-    if(!res.ok) return;
-
-    const w = await res.json();
-    if(!w || !w.range || !w.total){
-      document.getElementById("weeklyBox").style.display = "none";
-      return;
-    }
-
-    document.getElementById("weeklyBox").style.display = "block";
-    document.getElementById("weeklyOneLiner").textContent = w.one_liner || "";
-
-    const from = (w.range && w.range.from) ? w.range.from : "";
-    const to = (w.range && w.range.to) ? w.range.to : "";
-    const total = w.total || 0;
-
-    const src1 = (w.by_source && w.by_source[0]) ? `${w.by_source[0].source} ${w.by_source[0].count}건` : "";
-    const src2 = (w.by_source && w.by_source[1]) ? `${w.by_source[1].source} ${w.by_source[1].count}건` : "";
-
-    document.getElementById("weeklyStats").innerHTML =
-      `기간: <b>${escapeHtml(from)} ~ ${escapeHtml(to)}</b> · 주간 기사: <b>${total}건</b><br>` +
-      (src1 ? `신문사: ${escapeHtml(src1)}${src2 ? `, ${escapeHtml(src2)}` : ""}` : "");
-
-    const chips = (w.top_keywords || []).slice(0,3).map(x =>
-      `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">${escapeHtml(x.tag)} (${x.count})</span>`
-    ).join("");
-    document.getElementById("weeklyTop").innerHTML = chips;
-
-  }catch(e){
-    document.getElementById("weeklyBox").style.display = "none";
-  }
-}
-
-/* 공유: 링크만 공유/복사 */
+/* ✅ 링크 공유 */
 async function shareArticle(url){
   const shareData = { url };
-
   try{
     if (navigator.share && navigator.canShare && navigator.canShare(shareData)){
       await navigator.share(shareData);
@@ -396,8 +359,7 @@ function render() {
     container.innerHTML += `
       <div class="col-12 col-md-6 col-lg-4">
         <div class="news-card">
-          <button class="share-btn" type="button" aria-label="share"
-            onclick="shareArticle('${safeUrl}')">
+          <button class="share-btn" type="button" title="공유" onclick="shareArticle('${safeUrl}')">
             <i class="fa-solid fa-share-nodes"></i>
           </button>
 
@@ -422,46 +384,44 @@ function render() {
 }
 
 function applyFilters() {
-  const dateSelect = document.getElementById("dateFilter");
+  const dateVal = document.getElementById("dateFilter").value;
   const tagVal = document.getElementById("tagFilter").value;
-  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
-
-  // ✅ 검색어가 있으면 날짜 필터를 전체로 강제
-  let dateVal = dateSelect.value;
-  if (keyword.length > 0 && dateVal !== "all") {
-    dateVal = "all";
-    dateSelect.value = "all";
-  }
+  const keyword = (committedKeyword || "").toLowerCase().trim();
 
   filtered = articles.filter(a => {
     let ok = true;
-
     if (dateVal !== "all") ok = ok && a.date === dateVal;
     if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
 
     if (keyword) {
-      const block =
-        `${a.title || ""} ${a.subtitle || ""} ${(a.tags || []).join(" ")}`
-          .toLowerCase();
-      ok = ok && block.includes(keyword);
+      ok = ok && (a._searchText || "").includes(keyword);
     }
     return ok;
   });
 
   filtered = sortArticles(filtered);
 
-  const topScope =
-    dateVal === "all" ? articles : articles.filter(a => a.date === dateVal);
-
+  const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
   renderTopKeywords(topScope);
+
   render();
 }
-
 
 function filterByTag(tag) {
   document.getElementById("tagFilter").value = tag;
   applyFilters();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function commitSearch(){
+  committedKeyword = document.getElementById("searchInput").value || "";
+  applyFilters();
+}
+
+function clearSearch(){
+  document.getElementById("searchInput").value = "";
+  committedKeyword = "";
+  applyFilters();
 }
 
 function escapeHtml(str){
@@ -471,9 +431,20 @@ function escapeHtml(str){
 }
 function escapeHtmlAttr(str){ return escapeHtml(str); }
 
+/* ✅ 이벤트: 자동검색 제거, 버튼/엔터로만 검색 */
 document.getElementById("dateFilter").addEventListener("change", applyFilters);
 document.getElementById("tagFilter").addEventListener("change", applyFilters);
-document.getElementById("searchInput").addEventListener("input", applyFilters);
+
+document.getElementById("searchBtn").addEventListener("click", commitSearch);
+document.getElementById("clearBtn").addEventListener("click", clearSearch);
+
+// 엔터로 검색
+document.getElementById("searchInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    commitSearch();
+  }
+});
 
 loadJSON();
 </script>
