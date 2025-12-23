@@ -422,17 +422,27 @@ function render() {
 }
 
 function applyFilters() {
-  const dateVal = document.getElementById("dateFilter").value;
+  const dateSelect = document.getElementById("dateFilter");
   const tagVal = document.getElementById("tagFilter").value;
   const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
 
+  // ✅ 검색어가 있으면 날짜 필터를 전체로 강제
+  let dateVal = dateSelect.value;
+  if (keyword.length > 0 && dateVal !== "all") {
+    dateVal = "all";
+    dateSelect.value = "all";
+  }
+
   filtered = articles.filter(a => {
     let ok = true;
+
     if (dateVal !== "all") ok = ok && a.date === dateVal;
     if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
 
     if (keyword) {
-      const block = `${a.title || ''} ${a.subtitle || ''} ${(a.tags || []).join(' ')}`.toLowerCase();
+      const block =
+        `${a.title || ""} ${a.subtitle || ""} ${(a.tags || []).join(" ")}`
+          .toLowerCase();
       ok = ok && block.includes(keyword);
     }
     return ok;
@@ -440,11 +450,13 @@ function applyFilters() {
 
   filtered = sortArticles(filtered);
 
-  const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
-  renderTopKeywords(topScope);
+  const topScope =
+    dateVal === "all" ? articles : articles.filter(a => a.date === dateVal);
 
+  renderTopKeywords(topScope);
   render();
 }
+
 
 function filterByTag(tag) {
   document.getElementById("tagFilter").value = tag;
