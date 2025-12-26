@@ -1,0 +1,156 @@
+{
+  "range": {
+    "from": "2025-12-20",
+    "to": "2025-12-26"
+  },
+  "total": 198,
+  "by_source": [
+    {
+      "source": "전기신문",
+      "count": 103
+    },
+    {
+      "source": "에너지신문",
+      "count": 58
+    },
+    {
+      "source": "가스신문",
+      "count": 37
+    }
+  ],
+  "top_keywords": [
+    {
+      "tag": "재생",
+      "count": 71
+    },
+    {
+      "tag": "수소",
+      "count": 46
+    },
+    {
+      "tag": "기후부",
+      "count": 36
+    },
+    {
+      "tag": "배터리",
+      "count": 33
+    },
+    {
+      "tag": "분산",
+      "count": 30
+    }
+  ],
+  "by_day": [
+    {
+      "date": "2025-12-20",
+      "count": 3
+    },
+    {
+      "date": "2025-12-21",
+      "count": 3
+    },
+    {
+      "date": "2025-12-22",
+      "count": 49
+    },
+    {
+      "date": "2025-12-23",
+      "count": 59
+    },
+    {
+      "date": "2025-12-24",
+      "count": 41
+    },
+    {
+      "date": "2025-12-25",
+      "count": 4
+    },
+    {
+      "date": "2025-12-26",
+      "count": 39
+    }
+  ],
+  "top_articles": [
+    {
+      "date": "2025-12-23",
+      "source": "에너지신문",
+      "title": "탄소배출규제 대응 위한 ‘배출량 산정 표준화’ 개발한다",
+      "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=221240",
+      "tags": [
+        "수소",
+        "연료전지",
+        "청정수소",
+        "재생",
+        "배출권",
+        "분산",
+        "CCU",
+        "CCUS",
+        "ESS",
+        "배터리"
+      ]
+    },
+    {
+      "date": "2025-12-24",
+      "source": "가스신문",
+      "title": "[시론] 탈탄소 강화정책과 저성장에 갇힌 2025년 가스업계",
+      "url": "https://www.gasnews.com/news/articleView.html?idxno=123295",
+      "tags": [
+        "수소",
+        "원자력",
+        "재생",
+        "도시가스",
+        "NDC",
+        "배터리",
+        "충전소",
+        "수소차"
+      ]
+    },
+    {
+      "date": "2025-12-24",
+      "source": "가스신문",
+      "title": "[기자칼럼] 준비된 연료전지기술, 시장과 정책은 제자리",
+      "url": "https://www.gasnews.com/news/articleView.html?idxno=123296",
+      "tags": [
+        "수소",
+        "연료전지",
+        "그린수소",
+        "청정수소",
+        "재생",
+        "분산",
+        "HPS",
+        "RPS"
+      ]
+    },
+    {
+      "date": "2025-12-23",
+      "source": "가스신문",
+      "title": "국가기술표준원, 탄소중립 및 녹색성장 표준화 전략 3.0 발표",
+      "url": "https://www.gasnews.com/news/articleView.html?idxno=123283",
+      "tags": [
+        "수소",
+        "연료전지",
+        "재생",
+        "분산",
+        "ESS",
+        "배터리",
+        "수소차"
+      ]
+    },
+    {
+      "date": "2025-12-22",
+      "source": "가스신문",
+      "title": "AI 전환, 가스산업의 위기이자 기회로 다가와",
+      "url": "https://www.gasnews.com/news/articleView.html?idxno=123270",
+      "tags": [
+        "수소",
+        "도시가스",
+        "분산",
+        "NDC",
+        "암모니아",
+        "ESS",
+        "배터리"
+      ]
+    }
+  ],
+  "one_liner": "이번 주는 ‘재생’ 이슈가 가장 두드러졌고, 전기신문 비중이 높았으며(103건), 기사량 피크는 2025-12-23(59건)입니다."
+}
