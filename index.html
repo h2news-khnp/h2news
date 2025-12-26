@@ -1,494 +1,435 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<title>KHNP Hydrogen News</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-<style>
-  :root { --khnp-blue:#0054A6; --bg-color:#f0f2f5; }
-  body{ background:var(--bg-color); font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif; color:#333; padding-bottom:50px; }
-  header{
-    background:white; border-bottom:1px solid #ddd; padding:0.8rem 0;
-    position:sticky; top:0; z-index:1000; box-shadow:0 2px 5px rgba(0,0,0,0.05);
-  }
-  .brand-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .brand-left{ display:flex; align-items:center; gap:10px; min-width:40px; }
-  .brand-logo{
-    width:28px; height:28px; object-fit:contain;
-    background:transparent !important; border:none !important; border-radius:0 !important; box-shadow:none !important;
-  }
-  .brand-center{ display:flex; align-items:center; justify-content:center; flex:1; gap:8px; text-align:center; }
-  header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }
-  .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }
-
-  .topkw{
-    background:white; border-radius:10px; border:1px solid #eee;
-    padding:10px 12px; margin-top:12px; margin-bottom:10px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.05);
-  }
-  .topkw-title{
-    font-size:0.85rem; font-weight:800; color:#444; margin-bottom:8px;
-    display:flex; align-items:center; gap:8px;
-  }
-  .topkw-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:0; }
-  .kw-chip{
-    font-size:0.78rem;
-    background:#e7f1ff;
-    color:var(--khnp-blue);
-    padding:4px 10px;
-    border-radius:999px;
-    cursor:pointer;
-    border:1px solid rgba(0,84,166,0.12);
-    user-select:none;
-    line-height:1.15;
-    white-space:nowrap;
-  }
-  .kw-chip:hover{ filter:brightness(0.98); }
-
-  .filter-container{
-    background:white; border-radius:8px; padding:10px;
-    margin-top:10px; margin-bottom:15px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #eee;
-  }
-  .form-control-sm,.form-select-sm{ font-size:0.85rem; background-color:#f8f9fa; border:1px solid #e9ecef; }
-
-  .news-card{
-    background:white; border-radius:12px; border:1px solid #eef0f2;
-    padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.03);
-    transition:transform 0.2s;
-    position:relative;
-  }
-  .news-card:active{ transform:scale(0.98); }
-
-  .share-btn{
-    position:absolute;
-    top:12px; right:12px;
-    width:34px; height:34px;
-    border-radius:10px;
-    border:1px solid #e9ecef;
-    background:#fff;
-    display:flex; align-items:center; justify-content:center;
-    color:#666; cursor:pointer;
-    box-shadow:0 1px 3px rgba(0,0,0,0.04);
-  }
-  .share-btn:hover{ filter:brightness(0.98); }
-  .share-btn i{ font-size:0.95rem; }
-
-  .meta-info{
-    font-size:0.75rem; color:#888; margin-bottom:0.5rem;
-    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-    padding-right:44px;
-  }
-  .news-title{ font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:0.5rem; color:#222; padding-right:44px; }
-  .news-subtitle{
-    font-size:0.9rem; color:#555; line-height:1.5; margin-bottom:1rem;
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-  }
-  .card-bottom{
-    display:flex; justify-content:space-between; align-items:flex-end;
-    border-top:1px solid #f1f1f1; padding-top:10px; margin-top:10px; gap:10px;
-  }
-  .tags-wrapper{ display:flex; flex-wrap:wrap; gap:4px; max-width:72%; }
-  .tag-badge{ font-size:0.7rem; background-color:#e7f1ff; color:var(--khnp-blue); padding:2px 8px; border-radius:4px; cursor:pointer; white-space:nowrap; }
-  .btn-link-custom{
-    font-size:0.8rem; font-weight:700; color:var(--khnp-blue);
-    text-decoration:none; display:flex; align-items:center; white-space:nowrap;
-  }
-  .btn-link-custom:hover{ text-decoration:underline; }
-
-  .toast-lite{
-    position:fixed;
-    left:50%; bottom:24px;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,0.78);
-    color:#fff;
-    padding:10px 14px;
-    border-radius:12px;
-    font-size:0.85rem;
-    z-index:9999;
-    display:none;
-    max-width:92vw;
-    text-align:center;
-  }
-</style>
-</head>
-
-<body>
-<header>
-  <div class="container brand-row">
-    <div class="brand-left">
-      <img class="brand-logo" src="assets/khnp_logo.png" alt="KHNP"
-           onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='inline-flex';">
-      <span id="logoFallback" class="badge text-bg-light border" style="display:none; font-weight:900;">KHNP</span>
-    </div>
-    <div class="brand-center">
-      <h5>KHNP H2 News Archive</h5>
-    </div>
-    <div class="brand-right" title="Hydrogen">
-      <i class="fa-solid fa-droplet"></i>
-    </div>
-  </div>
-</header>
-
-<div class="container">
-  <!-- 오늘 TOP3 -->
-  <div class="topkw" id="topkwBox" style="display:none;">
-    <div class="topkw-title">
-      <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>
-      오늘의 핵심 키워드 TOP 3
-    </div>
-    <div class="topkw-chips" id="topkwChips"></div>
-  </div>
-
-  <!-- ✅ 주간 트렌드 미니 리포트 -->
-  <div class="topkw" id="weeklyBox" style="display:none;">
-    <div class="topkw-title">
-      <i class="fa-solid fa-calendar-week" style="color:var(--khnp-blue)"></i>
-      주간 트렌드 미니 리포트
-    </div>
-    <div id="weeklyOneLiner" class="text-muted small" style="font-weight:700; line-height:1.35;"></div>
-    <div id="weeklyStats" class="small" style="margin-top:8px;"></div>
-    <div id="weeklyTop" class="topkw-chips" style="margin-top:10px;"></div>
-  </div>
-
-  <!-- 검색/필터 -->
-  <div class="filter-container">
-    <div class="row g-2">
-      <div class="col-12">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-          <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 요약, 태그 검색...">
-          <button id="searchBtn" class="btn btn-sm btn-primary" style="background:var(--khnp-blue); border-color:var(--khnp-blue);">검색</button>
-          <button id="clearBtn" class="btn btn-sm btn-outline-secondary">초기화</button>
-        </div>
-      </div>
-
-      <div class="col-6">
-        <select id="dateFilter" class="form-select form-select-sm">
-          <option value="all">날짜: 전체</option>
-        </select>
-      </div>
-      <div class="col-6">
-        <select id="tagFilter" class="form-select form-select-sm">
-          <option value="all">태그: 전체</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div class="row" id="newsList"></div>
-
-  <div id="loading" class="text-center py-4 text-muted small">
-    <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...
-  </div>
+<!DOCTYPE html>  <html lang="ko">  
+<head>  
+<meta charset="UTF-8">  
+<title>KHNP Hydrogen News</title>  
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">  
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">  <style>  
+  :root { --khnp-blue:#0054A6; --bg-color:#f0f2f5; }  
+  body{ background:var(--bg-color); font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif; color:#333; padding-bottom:50px; }  
+  header{  
+    background:white; border-bottom:1px solid #ddd; padding:0.8rem 0;  
+    position:sticky; top:0; z-index:1000; box-shadow:0 2px 5px rgba(0,0,0,0.05);  
+  }  
+  .brand-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }  
+  .brand-left{ display:flex; align-items:center; gap:10px; min-width:40px; }  
+  .brand-logo{  
+  width:28px;  
+  height:28px;  
+  object-fit:contain;  
+  background:transparent !important;  
+  border:none !important;  
+  border-radius:0 !important;  
+  box-shadow:none !important;  
+  }  
+  .brand-center{ display:flex; align-items:center; justify-content:center; flex:1; gap:8px; text-align:center; }  
+  header h5{ margin:0; color:var(--khnp-blue); font-weight:900; font-size:1.05rem; letter-spacing:-0.2px; white-space:nowrap; }  
+  .brand-right{ min-width:40px; display:flex; align-items:center; justify-content:flex-end; color:var(--khnp-blue); }  
+  
+  .topkw{  
+    background:white; border-radius:10px; border:1px solid #eee;  
+    padding:10px 12px; margin-top:12px; margin-bottom:10px;  
+    box-shadow:0 1px 3px rgba(0,0,0,0.05);  
+  }  
+  .topkw-title{  
+    font-size:0.85rem; font-weight:800; color:#444; margin-bottom:8px;  
+    display:flex; align-items:center; gap:8px;  
+  }  
+  .topkw-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:0; }  
+  .kw-chip{  
+    font-size:0.78rem;  
+    background:#e7f1ff;  
+    color:var(--khnp-blue);  
+    padding:4px 10px;  
+    border-radius:999px;  
+    cursor:pointer;  
+    border:1px solid rgba(0,84,166,0.12);  
+    user-select:none;  
+    line-height:1.15;  
+    white-space:nowrap;  
+  }  
+  .kw-chip:hover{ filter:brightness(0.98); }  
+  
+  .filter-container{  
+    background:white; border-radius:8px; padding:10px;  
+    margin-top:10px; margin-bottom:15px;  
+    box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #eee;  
+  }  
+  .form-control-sm,.form-select-sm{ font-size:0.85rem; background-color:#f8f9fa; border:1px solid #e9ecef; }  
+  
+  .news-card{  
+    background:white; border-radius:12px; border:1px solid #eef0f2;  
+    padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.03);  
+    transition:transform 0.2s;  
+    position:relative;  
+  }  
+  .news-card:active{ transform:scale(0.98); }  
+  
+  .share-btn{  
+    position:absolute;  
+    top:12px;  
+    right:12px;  
+    width:34px;  
+    height:34px;  
+    border-radius:10px;  
+    border:1px solid #e9ecef;  
+    background:#fff;  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+    color:#666;  
+    cursor:pointer;  
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);  
+  }  
+  .share-btn:hover{ filter:brightness(0.98); }  
+  .share-btn i{ font-size:0.95rem; }  
+  
+  .meta-info{  
+    font-size:0.75rem; color:#888; margin-bottom:0.5rem;  
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;  
+    padding-right:44px;  
+  }  
+  .news-title{ font-size:1.05rem; font-weight:800; line-height:1.4; margin-bottom:0.5rem; color:#222; padding-right:44px; }  
+  .news-subtitle{  
+    font-size:0.9rem; color:#555; line-height:1.5; margin-bottom:1rem;  
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;  
+  }  
+  .card-bottom{  
+    display:flex; justify-content:space-between; align-items:flex-end;  
+    border-top:1px solid #f1f1f1; padding-top:10px; margin-top:10px; gap:10px;  
+  }  
+  .tags-wrapper{ display:flex; flex-wrap:wrap; gap:4px; max-width:72%; }  
+  .tag-badge{ font-size:0.7rem; background-color:#e7f1ff; color:var(--khnp-blue); padding:2px 8px; border-radius:4px; cursor:pointer; white-space:nowrap; }  
+  .btn-link-custom{  
+    font-size:0.8rem; font-weight:700; color:var(--khnp-blue);  
+    text-decoration:none; display:flex; align-items:center; white-space:nowrap;  
+  }  
+  .btn-link-custom:hover{ text-decoration:underline; }  
+  
+  .toast-lite{  
+    position:fixed;  
+    left:50%;  
+    bottom:24px;  
+    transform:translateX(-50%);  
+    background:rgba(0,0,0,0.78);  
+    color:#fff;  
+    padding:10px 14px;  
+    border-radius:12px;  
+    font-size:0.85rem;  
+    z-index:9999;  
+    display:none;  
+    max-width:92vw;  
+    text-align:center;  
+  }  
+</style>  </head>  <body>  
+<header>  
+  <div class="container brand-row">  
+    <div class="brand-left">  
+      <img class="brand-logo" src="assets/khnp_logo.png" alt="KHNP"  
+           onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='inline-flex';">  
+      <span id="logoFallback" class="badge text-bg-light border" style="display:none; font-weight:900;">KHNP</span>  
+    </div>  
+    <div class="brand-center">  
+      <h5>KHNP H2 News Archive</h5>  
+    </div>  
+    <div class="brand-right" title="Hydrogen">  
+      <i class="fa-solid fa-droplet"></i>  
+    </div>  
+  </div>  
+</header>  <div class="container">  
+  <div class="topkw" id="topkwBox" style="display:none;">  
+    <div class="topkw-title">  
+      <i class="fa-solid fa-chart-simple" style="color:var(--khnp-blue)"></i>  
+      오늘의 핵심 키워드 TOP 3  
+    </div>  
+    <div class="topkw-chips" id="topkwChips"></div>  
+  </div>    <div class="filter-container">  
+    <div class="row g-2">  
+      <div class="col-12">  
+        <div class="input-group input-group-sm">  
+          <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>  
+          <input type="text" id="searchInput" class="form-control form-control-sm border-start-0" placeholder="제목, 요약, 태그 검색...">  
+          <button id="searchBtn" class="btn btn-sm btn-primary" style="background:var(--khnp-blue); border-color:var(--khnp-blue);">  
+            검색  
+          </button>  
+          <button id="clearBtn" class="btn btn-sm btn-outline-secondary">  
+            초기화  
+          </button>  
+        </div>  
+      </div>  <div class="col-6">  
+    <select id="dateFilter" class="form-select form-select-sm">  
+      <option value="all">날짜: 전체</option>  
+    </select>  
+  </div>  
+  <div class="col-6">  
+    <select id="tagFilter" class="form-select form-select-sm">  
+      <option value="all">태그: 전체</option>  
+    </select>  
+  </div>  
 </div>
 
-<div id="toastLite" class="toast-lite"></div>
-
-<script>
-let articles = [];
-let filtered = [];
-
-// 검색 확정값(버튼/엔터로만 바뀜)
-let committedKeyword = "";
-
-const SOURCE_PRIORITY = ["에너지신문", "가스신문", "전기신문"];
-
-function sortArticles(list){
-  return (list || []).slice().sort((a,b) => {
-    const aTags = Array.isArray(a.tags) ? a.tags.length : 0;
-    const bTags = Array.isArray(b.tags) ? b.tags.length : 0;
-    if (bTags !== aTags) return bTags - aTags;
-
-    const aIdx = SOURCE_PRIORITY.indexOf(a.source || "");
-    const bIdx = SOURCE_PRIORITY.indexOf(b.source || "");
-    const aRank = (aIdx === -1) ? 999 : aIdx;
-    const bRank = (bIdx === -1) ? 999 : bIdx;
-    if (aRank !== bRank) return aRank - bRank;
-
-    return String(a.title || "").localeCompare(String(b.title || ""), "ko");
-  });
-}
-
-async function loadJSON() {
-  try {
-    const res = await fetch("data/all.json?" + Date.now());
-    if (!res.ok) throw new Error("data/all.json을 찾을 수 없습니다.");
-    articles = await res.json();
-
-    articles = (articles || []).map(a => ({
-      ...a,
-      tags: Array.isArray(a.tags) ? a.tags : [],
-      _searchText: (
-        (a.title || "") + " " +
-        (a.subtitle || "") + " " +
-        (Array.isArray(a.tags) ? a.tags.join(" ") : "")
-      ).toLowerCase()
-    }));
-
-    buildDateOptions();
-    buildTagOptions();
-    selectLatestDateByDefault();
-
-    applyFilters();
-
-    // ✅ 주간 미니 리포트 로드(weekly.json 있으면 표시)
-    loadWeekly();
-
-    document.getElementById('loading').style.display = 'none';
-  } catch (e) {
-    document.getElementById('loading').innerHTML =
-      `<span class="text-danger">데이터 로드 실패<br>${escapeHtml(e.message)}</span>`;
-  }
-}
-
-function selectLatestDateByDefault(){
-  const dates = Array.from(new Set(articles.map(a => a.date).filter(Boolean))).sort().reverse();
-  if (!dates.length) return;
-  document.getElementById("dateFilter").value = dates[0];
-}
-
-function buildDateOptions() {
-  const dateSet = new Set(articles.map(a => a.date).filter(Boolean));
-  const dateFilter = document.getElementById("dateFilter");
-  const sortedDates = Array.from(dateSet).sort().reverse();
-  sortedDates.forEach(date => {
-    const op = document.createElement("option");
-    op.value = date;
-    op.textContent = date;
-    dateFilter.appendChild(op);
-  });
-}
-
-function buildTagOptions() {
-  const tagSet = new Set();
-  articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));
-  const tagFilter = document.getElementById("tagFilter");
-  const sortedTags = Array.from(tagSet).sort((a,b)=>a.localeCompare(b,'ko'));
-  sortedTags.forEach(tag => {
-    const op = document.createElement("option");
-    op.value = tag;
-    op.textContent = tag;
-    tagFilter.appendChild(op);
-  });
-}
-
-function computeTopKeywords(items, topN=3){
-  const counter = new Map();
-  items.forEach(a => (a.tags || []).forEach(t => counter.set(t, (counter.get(t) || 0) + 1)));
-  return Array.from(counter.entries())
-    .sort((x,y)=> y[1]-x[1] || x[0].localeCompare(y[0],'ko'))
-    .slice(0, topN)
-    .map(([tag,count]) => ({ tag, count }));
-}
-
-function renderTopKeywords(items){
-  const top = computeTopKeywords(items, 3);
-  const box = document.getElementById("topkwBox");
-  const chips = document.getElementById("topkwChips");
-
-  if (!top.length){
-    box.style.display = "none";
-    return;
-  }
-  box.style.display = "block";
-
-  chips.innerHTML = top.map(x =>
-    `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">${escapeHtml(x.tag)} (${x.count})</span>`
-  ).join("");
-}
-
-/* ✅ weekly.json 로드 & 표시 */
-async function loadWeekly(){
-  try{
-    const res = await fetch("data/weekly.json?" + Date.now());
-    if(!res.ok) return;
-
-    const w = await res.json();
-    if(!w || !w.range || !w.total){
-      document.getElementById("weeklyBox").style.display = "none";
-      return;
-    }
-
-    document.getElementById("weeklyBox").style.display = "block";
-    document.getElementById("weeklyOneLiner").textContent = w.one_liner || "";
-
-    const from = (w.range && w.range.from) ? w.range.from : "";
-    const to = (w.range && w.range.to) ? w.range.to : "";
-    const total = w.total || 0;
-
-    const src1 = (w.by_source && w.by_source[0]) ? `${w.by_source[0].source} ${w.by_source[0].count}건` : "";
-    const src2 = (w.by_source && w.by_source[1]) ? `${w.by_source[1].source} ${w.by_source[1].count}건` : "";
-
-    document.getElementById("weeklyStats").innerHTML =
-      `기간: <b>${escapeHtml(from)} ~ ${escapeHtml(to)}</b> · 주간 기사: <b>${total}건</b><br>` +
-      (src1 ? `신문사: ${escapeHtml(src1)}${src2 ? `, ${escapeHtml(src2)}` : ""}` : "");
-
-    const chips = (w.top_keywords || []).slice(0,3).map(x =>
-      `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">${escapeHtml(x.tag)} (${x.count})</span>`
-    ).join("");
-    document.getElementById("weeklyTop").innerHTML = chips;
-
-  }catch(e){
-    document.getElementById("weeklyBox").style.display = "none";
-  }
-}
-
-async function shareArticle(url){
-  const shareData = { url };
-  try{
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)){
-      await navigator.share(shareData);
-      return;
-    }
-  }catch(_e){}
-
-  try{
-    if (navigator.clipboard && window.isSecureContext){
-      await navigator.clipboard.writeText(url);
-      toast("링크를 복사했습니다.");
-      return;
-    }
-  }catch(_e){}
-
-  try{
-    const ta = document.createElement("textarea");
-    ta.value = url;
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    toast("링크를 복사했습니다.");
-  }catch(_e){
-    toast("복사가 지원되지 않습니다.");
-  }
-}
-
-let toastTimer = null;
-function toast(msg){
-  const el = document.getElementById("toastLite");
-  el.textContent = msg;
-  el.style.display = "block";
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ el.style.display="none"; }, 1400);
-}
-
-function render() {
-  const container = document.getElementById("newsList");
-  container.innerHTML = "";
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="col-12 text-center py-5 text-muted">
-        <i class="far fa-folder-open fa-2x mb-3"></i><br>
-        검색 결과가 없습니다.
-      </div>`;
-    return;
-  }
-
-  filtered.forEach(a => {
-    const tagsHtml = (a.tags || []).map(t =>
-      `<span class="tag-badge" onclick="filterByTag('${escapeHtmlAttr(t)}')">#${escapeHtml(t)}</span>`
-    ).join("");
-
-    const safeUrl = escapeHtmlAttr(a.url || '#');
-
-    container.innerHTML += `
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="news-card">
-          <button class="share-btn" type="button" title="공유" onclick="shareArticle('${safeUrl}')">
-            <i class="fa-solid fa-share-nodes"></i>
-          </button>
-
-          <div class="meta-info">
-            <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date || '')}</span>
-            <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source || '')}</span>
-          </div>
-
-          <h3 class="news-title">${escapeHtml(a.title || '')}</h3>
-          <p class="news-subtitle">${escapeHtml(a.subtitle || '')}</p>
-
-          <div class="card-bottom">
-            <div class="tags-wrapper">${tagsHtml}</div>
-            <a href="${safeUrl}" target="_blank" class="btn-link-custom">
-              원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-}
-
-function applyFilters() {
-  const dateVal = document.getElementById("dateFilter").value;
-  const tagVal = document.getElementById("tagFilter").value;
-  const keyword = (committedKeyword || "").toLowerCase().trim();
-
-  filtered = articles.filter(a => {
-    let ok = true;
-    if (dateVal !== "all") ok = ok && a.date === dateVal;
-    if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);
-    if (keyword) ok = ok && (a._searchText || "").includes(keyword);
-    return ok;
-  });
-
-  filtered = sortArticles(filtered);
-
-  const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);
-  renderTopKeywords(topScope);
-
-  render();
-}
-
-function filterByTag(tag) {
-  document.getElementById("tagFilter").value = tag;
-  applyFilters();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// 검색 버튼/엔터 누르면 날짜를 전체(all)로 강제
-function commitSearch(forceAllDates=true){
-  committedKeyword = document.getElementById("searchInput").value || "";
-  if (forceAllDates){
-    document.getElementById("dateFilter").value = "all";
-  }
-  applyFilters();
-}
-
-function clearSearch(){
-  document.getElementById("searchInput").value = "";
-  committedKeyword = "";
-  applyFilters();
-}
-
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[s]));
-}
-function escapeHtmlAttr(str){ return escapeHtml(str); }
-
-document.getElementById("dateFilter").addEventListener("change", applyFilters);
-document.getElementById("tagFilter").addEventListener("change", applyFilters);
-
-document.getElementById("searchBtn").addEventListener("click", () => commitSearch(true));
-document.getElementById("clearBtn").addEventListener("click", clearSearch);
-
-document.getElementById("searchInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    commitSearch(true);
-  }
-});
-
-loadJSON();
-</script>
-</body>
-</html>
+  </div>    <div class="row" id="newsList"></div>    <div id="loading" class="text-center py-4 text-muted small">  
+    <i class="fas fa-spinner fa-spin me-1"></i> 데이터 불러오는 중...  
+  </div>  
+</div>  <div id="toastLite" class="toast-lite"></div>  <script>  
+let articles = [];  
+let filtered = [];  
+  
+// ✅ 검색 확정값(버튼/엔터로만 바뀜)  
+let committedKeyword = "";  
+  
+const SOURCE_PRIORITY = ["에너지신문", "가스신문", "전기신문"];  
+  
+function sortArticles(list){  
+  return (list || []).slice().sort((a,b) => {  
+    const aTags = Array.isArray(a.tags) ? a.tags.length : 0;  
+    const bTags = Array.isArray(b.tags) ? b.tags.length : 0;  
+    if (bTags !== aTags) return bTags - aTags;  
+  
+    const aIdx = SOURCE_PRIORITY.indexOf(a.source || "");  
+    const bIdx = SOURCE_PRIORITY.indexOf(b.source || "");  
+    const aRank = (aIdx === -1) ? 999 : aIdx;  
+    const bRank = (bIdx === -1) ? 999 : bIdx;  
+    if (aRank !== bRank) return aRank - bRank;  
+  
+    return String(a.title || "").localeCompare(String(b.title || ""), "ko");  
+  });  
+}  
+  
+async function loadJSON() {  
+  try {  
+    const res = await fetch("data/all.json?" + Date.now());  
+    if (!res.ok) throw new Error("data/all.json을 찾을 수 없습니다.");  
+    articles = await res.json();  
+  
+    articles = (articles || []).map(a => ({  
+      ...a,  
+      tags: Array.isArray(a.tags) ? a.tags : [],  
+      _searchText: (  
+        (a.title || "") + " " +  
+        (a.subtitle || "") + " " +  
+        (Array.isArray(a.tags) ? a.tags.join(" ") : "")  
+      ).toLowerCase()  
+    }));  
+  
+    buildDateOptions();  
+    buildTagOptions();  
+    selectLatestDateByDefault();  
+  
+    applyFilters();  
+    document.getElementById('loading').style.display = 'none';  
+  } catch (e) {  
+    document.getElementById('loading').innerHTML =  
+      `<span class="text-danger">데이터 로드 실패<br>${escapeHtml(e.message)}</span>`;  
+  }  
+}  
+  
+function selectLatestDateByDefault(){  
+  const dates = Array.from(new Set(articles.map(a => a.date).filter(Boolean))).sort().reverse();  
+  if (!dates.length) return;  
+  document.getElementById("dateFilter").value = dates[0];  
+}  
+  
+function buildDateOptions() {  
+  const dateSet = new Set(articles.map(a => a.date).filter(Boolean));  
+  const dateFilter = document.getElementById("dateFilter");  
+  const sortedDates = Array.from(dateSet).sort().reverse();  
+  sortedDates.forEach(date => {  
+    const op = document.createElement("option");  
+    op.value = date;  
+    op.textContent = date;  
+    dateFilter.appendChild(op);  
+  });  
+}  
+  
+function buildTagOptions() {  
+  const tagSet = new Set();  
+  articles.forEach(a => (a.tags || []).forEach(t => tagSet.add(t)));  
+  const tagFilter = document.getElementById("tagFilter");  
+  const sortedTags = Array.from(tagSet).sort((a,b)=>a.localeCompare(b,'ko'));  
+  sortedTags.forEach(tag => {  
+    const op = document.createElement("option");  
+    op.value = tag;  
+    op.textContent = tag;  
+    tagFilter.appendChild(op);  
+  });  
+}  
+  
+function computeTopKeywords(items, topN=3){  
+  const counter = new Map();  
+  items.forEach(a => (a.tags || []).forEach(t => counter.set(t, (counter.get(t) || 0) + 1)));  
+  return Array.from(counter.entries())  
+    .sort((x,y)=> y[1]-x[1] || x[0].localeCompare(y[0],'ko'))  
+    .slice(0, topN)  
+    .map(([tag,count]) => ({ tag, count }));  
+}  
+  
+function renderTopKeywords(items){  
+  const top = computeTopKeywords(items, 3);  
+  const box = document.getElementById("topkwBox");  
+  const chips = document.getElementById("topkwChips");  
+  
+  if (!top.length){  
+    box.style.display = "none";  
+    return;  
+  }  
+  box.style.display = "block";  
+  
+  chips.innerHTML = top.map(x =>  
+    `<span class="kw-chip" onclick="filterByTag('${escapeHtmlAttr(x.tag)}')">${escapeHtml(x.tag)} (${x.count})</span>`  
+  ).join("");  
+}  
+  
+async function shareArticle(url){  
+  const shareData = { url };  
+  try{  
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)){  
+      await navigator.share(shareData);  
+      return;  
+    }  
+  }catch(_e){}  
+  
+  try{  
+    if (navigator.clipboard && window.isSecureContext){  
+      await navigator.clipboard.writeText(url);  
+      toast("링크를 복사했습니다.");  
+      return;  
+    }  
+  }catch(_e){}  
+  
+  try{  
+    const ta = document.createElement("textarea");  
+    ta.value = url;  
+    ta.style.position = "fixed";  
+    ta.style.left = "-9999px";  
+    document.body.appendChild(ta);  
+    ta.select();  
+    document.execCommand("copy");  
+    document.body.removeChild(ta);  
+    toast("링크를 복사했습니다.");  
+  }catch(_e){  
+    toast("복사가 지원되지 않습니다.");  
+  }  
+}  
+  
+let toastTimer = null;  
+function toast(msg){  
+  const el = document.getElementById("toastLite");  
+  el.textContent = msg;  
+  el.style.display = "block";  
+  clearTimeout(toastTimer);  
+  toastTimer = setTimeout(()=>{ el.style.display="none"; }, 1400);  
+}  
+  
+function render() {  
+  const container = document.getElementById("newsList");  
+  container.innerHTML = "";  
+  
+  if (filtered.length === 0) {  
+    container.innerHTML = `  
+      <div class="col-12 text-center py-5 text-muted">  
+        <i class="far fa-folder-open fa-2x mb-3"></i><br>  
+        검색 결과가 없습니다.  
+      </div>`;  
+    return;  
+  }  
+  
+  filtered.forEach(a => {  
+    const tagsHtml = (a.tags || []).map(t =>  
+      `<span class="tag-badge" onclick="filterByTag('${escapeHtmlAttr(t)}')">#${escapeHtml(t)}</span>`  
+    ).join("");  
+  
+    const safeUrl = escapeHtmlAttr(a.url || '#');  
+  
+    container.innerHTML += `  
+      <div class="col-12 col-md-6 col-lg-4">  
+        <div class="news-card">  
+          <button class="share-btn" type="button" title="공유" onclick="shareArticle('${safeUrl}')">  
+            <i class="fa-solid fa-share-nodes"></i>  
+          </button>  
+  
+          <div class="meta-info">  
+            <span><i class="far fa-calendar me-1"></i>${escapeHtml(a.date || '')}</span>  
+            <span><i class="far fa-newspaper me-1"></i>${escapeHtml(a.source || '')}</span>  
+          </div>  
+  
+          <h3 class="news-title">${escapeHtml(a.title || '')}</h3>  
+          <p class="news-subtitle">${escapeHtml(a.subtitle || '')}</p>  
+  
+          <div class="card-bottom">  
+            <div class="tags-wrapper">${tagsHtml}</div>  
+            <a href="${safeUrl}" target="_blank" class="btn-link-custom">  
+              원문보기 <i class="fas fa-external-link-alt ms-1" style="font-size:0.7em;"></i>  
+            </a>  
+          </div>  
+        </div>  
+      </div>  
+    `;  
+  });  
+}  
+  
+function applyFilters() {  
+  const dateVal = document.getElementById("dateFilter").value;  
+  const tagVal = document.getElementById("tagFilter").value;  
+  const keyword = (committedKeyword || "").toLowerCase().trim();  
+  
+  filtered = articles.filter(a => {  
+    let ok = true;  
+    if (dateVal !== "all") ok = ok && a.date === dateVal;  
+    if (tagVal !== "all") ok = ok && (a.tags || []).includes(tagVal);  
+    if (keyword) ok = ok && (a._searchText || "").includes(keyword);  
+    return ok;  
+  });  
+  
+  filtered = sortArticles(filtered);  
+  
+  const topScope = (dateVal === "all") ? articles : articles.filter(a => a.date === dateVal);  
+  renderTopKeywords(topScope);  
+  
+  render();  
+}  
+  
+function filterByTag(tag) {  
+  document.getElementById("tagFilter").value = tag;  
+  applyFilters();  
+  window.scrollTo({ top: 0, behavior: 'smooth' });  
+}  
+  
+/* ✅ 핵심: 검색 버튼/엔터 누르면 날짜를 전체(all)로 강제 */  
+function commitSearch(forceAllDates=true){  
+  committedKeyword = document.getElementById("searchInput").value || "";  
+  
+  if (forceAllDates){  
+    document.getElementById("dateFilter").value = "all";  
+  }  
+  applyFilters();  
+}  
+  
+function clearSearch(){  
+  document.getElementById("searchInput").value = "";  
+  committedKeyword = "";  
+  applyFilters();  
+}  
+  
+function escapeHtml(str){  
+  return String(str).replace(/[&<>"']/g, s => ({  
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"  
+  }[s]));  
+}  
+function escapeHtmlAttr(str){ return escapeHtml(str); }  
+  
+document.getElementById("dateFilter").addEventListener("change", applyFilters);  
+document.getElementById("tagFilter").addEventListener("change", applyFilters);  
+  
+document.getElementById("searchBtn").addEventListener("click", () => commitSearch(true));  
+document.getElementById("clearBtn").addEventListener("click", clearSearch);  
+  
+document.getElementById("searchInput").addEventListener("keydown", (e) => {  
+  if (e.key === "Enter") {  
+    e.preventDefault();  
+    commitSearch(true);  
+  }  
+});  
+  
+loadJSON();  
+</script>  </body>  
+</html>  
