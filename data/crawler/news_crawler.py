@@ -16,15 +16,31 @@ TIMEOUT = 15
 MAX_PAGES = 3
 DEBUG = True
 
-KEYWORDS = [
+KEYWORDS_ANY = [
     "수소", "연료전지", "그린수소", "청정수소", "블루수소", "원자력",
-    "PAFC", "SOFC", "MCFC", "PEM", "재생", "배출권", "히트펌프", "도시가스", "구역전기", "PPA",
-    "수전해", "전해조", "PEMEC", "AEM", "알카라인", "분산", "NDC", "핑크수소",
-    "암모니아", "암모니아크래킹", "CCU", "CCUS", "기후부", "ESS", "배터리",
-    "수소생산", "수소저장", "액화수소",
-    "충전소", "수소버스", "수소차",
-    "한수원", "두산퓨얼셀", "한화임팩트", "현대차",
-    "HPS", "HPC", "REC", "RPS"
+    "PAFC", "SOFC", "MCFC", "PEM", "재생에너지", "배출권", "히트펌프", "도시가스", "구역전기", "PPA",
+    "수전해", "전해조", "PEMEC", "AEM", "알카라인", "분산형전원", "NDC", "핑크수소",
+    "암모니아", "암모니아크래킹", "CCU", "CCUS", "기후부", "ESS", "배터리", "BESS",
+    "수소생산", "수소저장", "액화수소", "충전소", "수소버스", "수소차",
+    "한수원", "두산퓨얼셀", "HPS", "HPC", "REC", "RPS", "SMP", "오프테이크", "Offtake",
+    "수소허브", "Hydrogen Hub", "수소발전", "수소혼소", "수소전소", "미코", "퓨얼셀",
+    "B2B전력", "RE100", "CHPS", "수소발전입찰", "데이터센터", "AI데이터센터", "고온수전해",
+    "수소터빈", "수소가스터빈", "전력계통", "출력제어", "탄소중립", "Net-Zero", "Scope3", "청정수소인증",
+    "수소법개정", "IRA", "수소안전", "수용성", "ORC", "SOEC", "스마트팜",
+    "바이오가스", "해외태양광", "북미풍력", "북해풍력", "인도네시아", "수소경제",
+    "LCA", "전과정평가", "수소수입", "암모니아수입", "Hydrogen Bank", "IPCEI",
+]
+
+REGIONS = ["호주", "영국", "칠레", "북미", "미국", "북해", "인도네시아"]
+
+KEYWORDS_RULES = [
+    {"must": ["수소"], "any": REGIONS},
+    {"must": ["풍력"], "any": REGIONS},
+    {"must": ["수력"], "any": REGIONS},
+    {"must": ["양수"], "any": REGIONS},
+    {"must": ["BESS"], "any": REGIONS},
+    {"must": ["태양광"], "any": REGIONS},
+    {"must": ["수소"], "any": ["포럼", "세미나", "심포지엄"]},
 ]
 
 DATA_DIR = Path("data")
@@ -47,7 +63,41 @@ EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 
 # ==========================================
-# 2. 공통 유틸
+# 2. 키워드 매칭 함수 (추가/교체)
+# ==========================================
+
+def match_any(text: str, keywords: list[str]) -> bool:
+    low = (text or "").lower()
+    return any(k.lower() in low for k in keywords)
+
+def match_rules(text: str, rules: list[dict]) -> bool:
+    low = (text or "").lower()
+    for r in rules:
+        must_ok = all(m.lower() in low for m in r["must"])
+        any_ok = any(a.lower() in low for a in r["any"])
+        if must_ok and any_ok:
+            return True
+    return False
+
+def is_relevant(title: str, body: str) -> bool:
+    text = f"{title} {body}"
+    return match_any(text, KEYWORDS_ANY) or match_rules(text, KEYWORDS_RULES)
+
+def make_tags(text: str) -> list[str]:
+    """기본 키워드(KEYWORDS_ANY) 중 실제 매칭된 것만 태그로 저장"""
+    low = (text or "").lower()
+    seen = set()
+    out = []
+    for k in KEYWORDS_ANY:
+        kl = k.lower()
+        if kl in low and k not in seen:
+            seen.add(k)
+            out.append(k)
+    return out
+
+
+# ==========================================
+# 3. 공통 유틸
 # ==========================================
 
 def kst_now():
@@ -74,20 +124,6 @@ def get_soup(url: str):
     except Exception as e:
         print(f"[ERROR] GET 실패: {url} → {e}")
         return None
-
-def contains_keyword(text: str) -> bool:
-    low = (text or "").lower()
-    return any(k.lower() in low for k in KEYWORDS)
-
-def make_tags(text: str) -> list[str]:
-    low = (text or "").lower()
-    seen = set()
-    out = []
-    for k in KEYWORDS:
-        if k.lower() in low and k not in seen:
-            seen.add(k)
-            out.append(k)
-    return out
 
 def parse_date_flexible(raw: str) -> str | None:
     raw = (raw or "").strip()
@@ -131,7 +167,7 @@ def summarize_2lines(body: str) -> str:
 
 
 # ==========================================
-# 3. 제목 누락 방지(목록 li에서 title robust 추출)
+# 4. 제목 누락 방지(목록 li에서 title robust 추출)
 # ==========================================
 
 def extract_title_from_li(li) -> str:
@@ -141,7 +177,6 @@ def extract_title_from_li(li) -> str:
 
     t = normalize_spaces(a.get_text(" ", strip=True))
 
-    # ✅ 텍스트가 비는 케이스 방어: title/data-title 속성, 주변 노드 fallback
     if not t:
         for attr in ("title", "data-title", "aria-label"):
             v = a.get(attr)
@@ -155,7 +190,6 @@ def extract_title_from_li(li) -> str:
         if titles_node:
             t = normalize_spaces(titles_node.get_text(" ", strip=True))
 
-    # 마지막 안전장치: a 전체 텍스트 재시도
     if not t:
         t = normalize_spaces("".join(a.stripped_strings))
 
@@ -163,11 +197,10 @@ def extract_title_from_li(li) -> str:
 
 
 # ==========================================
-# 4. 본문 정제 (공통 + 전기신문 특화)
+# 5. 본문 정제 (공통 + 전기신문 특화)
 # ==========================================
 
 def remove_common_blocks(root_tag):
-    """모든 신문 공통: 본문 영역 안의 script/style/iframe/광고 배너 제거"""
     if not root_tag:
         return
     for t in root_tag.select("script, style, iframe, noscript"):
@@ -182,21 +215,15 @@ def clean_common_noise(text: str) -> str:
     return normalize_spaces(s)
 
 def remove_electimes_blocks(article_tag):
-    """전기신문: 공통 제거 + 공유/유틸 블록 추가 제거"""
     remove_common_blocks(article_tag)
     for t in article_tag.select(".sns, .share, .article-share, .utility, .view-sns, .article-sns, .article-view-sns"):
         t.decompose()
 
 def clean_electimes_noise_text(text: str) -> str:
     s = normalize_spaces(text)
-
-    # 이메일 제거
     s = EMAIL_RE.sub(" ", s)
-
-    # 기자명 제거
     s = re.sub(r"[가-힣]{2,4}\s*기자", " ", s)
 
-    # 공유/기능 문구 제거
     noise_phrases = [
         "카카오스토리", "네이버블로그", "URL복사", "기사스크랩",
         "본문 글씨 키우기", "본문 글씨 줄이기",
@@ -206,15 +233,13 @@ def clean_electimes_noise_text(text: str) -> str:
     for ph in noise_phrases:
         s = s.replace(ph, " ")
 
-    # "(으)로" 등 이상 토큰 제거
     s = re.sub(r"\(\s*\)\s*\(으\)로", " ", s)
     s = re.sub(r"\(으\)로", " ", s)
-
     return normalize_spaces(s)
 
 
 # ==========================================
-# 5. 기사 상세에서 발행일/본문 추출
+# 6. 기사 상세에서 발행일/본문 추출
 # ==========================================
 
 def extract_published_date_from_article(soup: BeautifulSoup) -> str | None:
@@ -260,7 +285,6 @@ def extract_body_from_article(url: str, source: str) -> tuple[str, str | None]:
 
     published = extract_published_date_from_article(soup)
 
-    # 전기신문
     if source == "전기신문":
         article_tag = soup.select_one("article#article-view-content-div") or soup.select_one("div#article-view-content-div")
         if article_tag:
@@ -271,7 +295,6 @@ def extract_body_from_article(url: str, source: str) -> tuple[str, str | None]:
             if sub:
                 parts.append(sub.get_text(" ", strip=True))
 
-            # ✅ p 중심
             for p in article_tag.find_all("p"):
                 txt = p.get_text(" ", strip=True)
                 if txt:
@@ -282,7 +305,6 @@ def extract_body_from_article(url: str, source: str) -> tuple[str, str | None]:
             body = clean_electimes_noise_text(body)
             return (body if len(body) >= 60 else ""), published
 
-    # 에너지/가스 포함 공통
     selectors = [
         "div#article-view-content-div",
         "div#articleBody",
@@ -301,13 +323,11 @@ def extract_body_from_article(url: str, source: str) -> tuple[str, str | None]:
     if body_el:
         remove_common_blocks(body_el)
 
-        # ✅ 공통도 p 위주
         for p in body_el.find_all("p"):
             t = p.get_text(" ", strip=True)
             if t:
                 texts.append(t)
 
-        # p가 너무 없으면 안전 fallback
         if len(" ".join(texts)) < 80:
             fallback = body_el.get_text(" ", strip=True)
             if fallback:
@@ -324,7 +344,7 @@ def extract_body_from_article(url: str, source: str) -> tuple[str, str | None]:
 
 
 # ==========================================
-# 6. 목록 크롤러 (1~3페이지)
+# 7. 목록 크롤러 (1~3페이지)
 # ==========================================
 
 def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
@@ -357,7 +377,6 @@ def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
                 title = extract_title_from_li(li)
                 total += 1
 
-                # ✅ 타이틀이 비면 스킵(카드에서 제목 공백 방지)
                 if not title:
                     if DEBUG:
                         print(f"[WARN] {source} 제목 비어 스킵: {url}")
@@ -365,7 +384,10 @@ def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
 
                 body, pub_date = extract_body_from_article(url, source)
 
-                if not (contains_keyword(title) or contains_keyword(body)):
+                # ✅ 여기서 최종 필터링 (핵심!)
+                if not is_relevant(title, body):
+                    if DEBUG:
+                        print(f"[SKIP] {source} | {title}")
                     continue
 
                 tags = make_tags(title + " " + body)
@@ -397,7 +419,7 @@ def crawl_list(list_url: str, base_url: str, source: str) -> list[dict]:
 
 
 # ==========================================
-# 7. 저장 로직 (all / by_date / latest(today))
+# 8. 저장 로직 (all / by_date / latest(today))
 # ==========================================
 
 def load_all_existing() -> list[dict]:
