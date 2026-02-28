@@ -1,6 +1,28 @@
 [
   {
     "source": "에너지신문",
+    "title": "국내LPG가격 4개월만에 인상…3월 28원 올라",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=223281",
+    "date": "2026-03-01",
+    "tags": [
+      "충전소"
+    ],
+    "subtitle": "[에너지신문] 지난해 12월부터 올해 2월까지 3개월째 동결 행진을 이어왔던 국내 LPG가격이 3월에는 kg당 28원 인상되는 것으로 가닥이 잡혔다. 3개월 연속 인상된 국제LPG가격과 환율 병동에 kg당 110원 안팎의 인상요인이 발생했지만 소비자 물가와 연료비 부담을 느끼는 택시, 자영업자 및 충전, 판매 등 LPG업계의 어려움을 고려해 인상폭이 크게 줄어든 것으로 보인다.",
+    "is_important": 1
+  },
+  {
+    "source": "가스신문",
+    "title": "3월 국내 LPG가격 28원/kg '↑'···큰폭 인상요인에도 ‘물가안정’ 고려",
+    "url": "https://www.gasnews.com/news/articleView.html?idxno=124133",
+    "date": "2026-03-01",
+    "tags": [
+      "충전소"
+    ],
+    "subtitle": "[가스신문 = 김재형 기자] 3월 국내 LPG가격이 큰 폭의 인상요인에도 불구하고 kg당 28원 인상에 그쳤다. LPG수입사들이 정부의 물가안정 기조에 동참하며 가격 인상을 최소화한 것으로 풀이된다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
     "title": "삼척에 액체수소 저장‧하역 실증터미널 구축…2034년",
     "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=223280",
     "date": "2026-02-28",
