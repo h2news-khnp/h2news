@@ -33,6 +33,17 @@
     "is_important": 1
   },
   {
+    "source": "에너지신문",
+    "title": "GS칼텍스, 3월 LPG가격 26원 인상",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=223285",
+    "date": "2026-03-01",
+    "tags": [
+      "충전소"
+    ],
+    "subtitle": "[에너지신문] SK가스와 E1에 이어 GS칼텍스(부회장 허세홍)도 3월 국내LPG가격을 인상한다고 밝혔다. kg당 26원 인상함에 따라 GS칼텍스는 SK가스에 비해 kg당 2원 적지만 E1보다는 1원 많은 금액을 3월1일 0시부터 소급 적용받게 됐다.",
+    "is_important": 1
+  },
+  {
     "source": "가스신문",
     "title": "3월 국내 LPG가격 25~28원/kg '↑'···큰폭 인상요인에도 ‘물가안정’ 고려",
     "url": "https://www.gasnews.com/news/articleView.html?idxno=124133",
@@ -42,5 +53,14 @@
     ],
     "subtitle": "[가스신문 = 김재형 기자] 3월 국내 LPG가격이 큰 폭의 인상요인에도 불구하고 kg당 25~28원 인상에 그쳤다. LPG수입사들이 정부의 물가안정 기조에 동참하며 가격 인상을 최소화한 것으로 풀이된다.",
     "is_important": 1
+  },
+  {
+    "source": "전기신문",
+    "title": "김 총리, 이란 공습에 \"국민 안전·재외국민 보호 최우선 조치\"",
+    "url": "https://www.electimes.com/news/articleView.html?idxno=365616",
+    "date": "2026-03-01",
+    "tags": [],
+    "subtitle": "김민석 국무총리는 1일 미국·이스라엘과 이란 간 군사적 충돌이 발생 이후 국민적 우려가 커지는 상황에서 \"국민 안전과 재외국민 보호를 최우선으로 조치할 것\"을 강조했다. 김 총리는 이날 오후 최근 중동 지역의 군사적 긴장감이 최고조에 달한 사태를 매우 엄중히 인식한다면서 이같이 지시했다.",
+    "is_important": 0
   }
 ]
