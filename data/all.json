@@ -1,6 +1,64 @@
 [
   {
     "source": "전기신문",
+    "title": "월성원자력본부, 월성2호기 방사능방재 전체훈련 실시",
+    "url": "https://www.electimes.com/news/articleView.html?idxno=367392",
+    "date": "2026-04-25",
+    "tags": [
+      "원자력"
+    ],
+    "subtitle": "- 방사능방재 대응조직 발족·운영, 비상대응 절차 등 점검 한국수력원자력 월성원자력본부(본부장 권원택)은 지난 23일 원자력발전소 사고에 대비한 월성2호기 방사능방재 전체훈련을 실시했다고 밝혔다. 이번 훈련은 지진 및 지진해일로 인해 비상디젤발전기등의 피해가 발생한 상황에서, 원자로와 터빈발전기가 정지되고 안전등급 전원상실 상태에서 원자로 건물 격리기능이 상실된 상황을 가정하여 시행하였다.",
+    "is_important": 1
+  },
+  {
+    "source": "전기신문",
+    "title": "동전 하나에 천만 화소 담는 퀀텀닷 디스플레이 기술 개발 ..“XR 글라스에도 OK”",
+    "url": "https://www.electimes.com/news/articleView.html?idxno=367394",
+    "date": "2026-04-25",
+    "tags": [
+      "ESS",
+      "REC"
+    ],
+    "subtitle": "UNIST·서강대·ETRI, 퀀텀닷 발광 소재 마이크로 패터닝 기술 개발 제조 공정과 특수 첨가제로 4000PPI 초고해상도 달성 퀀텀닷(양자점) 화소를 차세대 XR 글라스에 적용할 수 있는 수준으로 작고 반듯하게 패터닝해 낼 수 있는 기술이 개발됐다. 대낮 야외에서도 선명하게 볼 수 있을 정도로 밝고 또렷한 퀀텀닷 XR 글라스에 대한 기대감이 높아지고 있다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
+    "title": "한전기술-비엣텔 그룹 손잡고 베트남 SMR 협력 본격화",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=224940",
+    "date": "2026-04-25",
+    "tags": [
+      "원자력",
+      "데이터센터"
+    ],
+    "subtitle": "[에너지신문] 한국전력기술은 지난 23일 베트남 하노이에서 현지 최대 국영 통신기업인 비엣텔 그룹과 소형모듈원자로(SMR) 사업개발 및 공동연구 협력을 위한 양해각서(MOU)를 체결했다. 이번 협약은 비엣텔 그룹이 운영 중인 데이터센터를 대상으로 SMR 기반의 전력공급 사업을 공동 추진하기 위한 것으로, 베트남 전역 14개 데이터센터와 건설 중인 대형 AI 데이터센터에 안정적인 전력을 공급하는 데 목적이 있다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
+    "title": "한전기술, 베트남 해상풍력시장 사업 추진 기반 마련",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=224944",
+    "date": "2026-04-25",
+    "tags": [
+      "재생에너지",
+      "탄소중립"
+    ],
+    "subtitle": "[에너지신문] 한국전력기술이 베트남 해상풍력시장 진출에 박차를 가한다. 한전기술은 지난 23일 베트남 하노이에서 현지 재생에너지사업 투자사인 Minh Thach Group(민탁)과 115MW 규모의 신규 연안해상풍력 공동개발협약(Joint Development Agreement)을 체결했다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
+    "title": "한전KDN, 베트남 에너지ICT 시장 개척 ‘박차’",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=224942",
+    "date": "2026-04-25",
+    "tags": [
+      "전력계통"
+    ],
+    "subtitle": "[에너지신문] 한전KDN이 베트남 에너지ICT분야 AX/DX 촉진을 위한 포괄적 업무협약 체결을 통해 현지 시장 개척에 박차를 가한다. 한전KDN은 23일 베트남 하노이 소재 JW매리어트 호텔에서 비에텔 솔루션(Viettel Solutions)와 에너지 분야 디지털전환을 위한 업무 협약(MOU)을 체결했다.",
+    "is_important": 1
+  },
+  {
+    "source": "전기신문",
     "title": "효성중공업, 비수기 잊은 ‘실적 상승’...1Q에 영업익 전년비 50% ↑",
     "url": "https://www.electimes.com/news/articleView.html?idxno=367389",
     "date": "2026-04-24",
