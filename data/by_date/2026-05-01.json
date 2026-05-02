@@ -50,6 +50,20 @@
   },
   {
     "source": "전기신문",
+    "title": "[GRES2026] “AIDC 전력난, 그리드 포밍이 정답”... 선그로우, AI 시대 에너지 청사진 공개",
+    "url": "https://www.electimes.com/news/articleView.html?idxno=367595",
+    "date": "2026-05-01",
+    "tags": [
+      "재생에너지",
+      "ESS",
+      "배터리",
+      "데이터센터"
+    ],
+    "subtitle": "글로벌 재생에너지 서밋 개최… 전압·주파수 스스로 제어하는 ‘GFM’ 기술 전면 배치 차세대 시스템 '파워매트릭스' 깜짝 공개... 138시간 극한 테스트로 기술력 입증 1GWh 구축에 단 12일… ‘파워타이탄 3.0’ 앞세워 글로벌 파트너와 11GWh 신규 수주 ESS 선도 기업인 선그로우(Sungrow)가 중국 허페이에서 제3회 '글로벌 재생에너지 서밋(Global Renewable Energy Summit, GRES 2026)'을 성황리에 개최했다.",
+    "is_important": 1
+  },
+  {
+    "source": "전기신문",
     "title": "5월 최저 전력수요 온다…대책 쏟아냈지만 계통운영 바짝 긴장",
     "url": "https://www.electimes.com/news/articleView.html?idxno=367599",
     "date": "2026-05-01",
