@@ -84,6 +84,18 @@
     "is_important": 1
   },
   {
+    "source": "에너지신문",
+    "title": "AI·반도체 시대, 전력망 패러다임 바뀐다",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=225259",
+    "date": "2026-05-09",
+    "tags": [
+      "ESS",
+      "데이터센터"
+    ],
+    "subtitle": "[에너지신문] AI 데이터센터와 반도체 클러스터가 촉발한 폭발적인 전력 수요가 국가 전력망의 근본적인 체질 개선을 요구하고 있다. 8일 열린 대한전기학회 전력기술부문회와 CIGRE 한국위원회의 공동 포럼에서는 AI 시대에 대응하기 위한 전력망 대전환 전략이 집중 논의됐다.",
+    "is_important": 1
+  },
+  {
     "source": "전기신문",
     "title": "한전, 전력산업 AX 가속화 시동 ‘KEPCO Energy AI Partners’공식 출범",
     "url": "https://www.electimes.com/news/articleView.html?idxno=367813",
