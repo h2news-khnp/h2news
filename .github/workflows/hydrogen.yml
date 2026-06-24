@@ -9,8 +9,8 @@ on:
 
     # 🔹 매일 뉴스 크롤링
   
-    # KST 14:13 → UTC 05:13
-    - cron: "13 5 * * *"
+    # KST 12:13 → UTC 03:13
+    - cron: "13 3 * * *"
 
 permissions:
   contents: write
