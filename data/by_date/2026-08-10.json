@@ -130,6 +130,39 @@
   },
   {
     "source": "에너지신문",
+    "title": "원자력환경공단, 하반기 신입·청년인턴 31명 채용한다",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=227353",
+    "date": "2026-08-10",
+    "tags": [
+      "원자력"
+    ],
+    "subtitle": "[에너지신문] 한국원자력환경공단이 방사성폐기물 관리와 원자력 안전 분야의 전문인력 확보에 나선다. 원자력환경공단은 2026년 정기채용을 통해 정규직 25명과 비정규직 6명 등 총 31명을 공개 채용한다고 10일 밝혔다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
+    "title": "부탄캔 상반기 생산량 반짝 상승…LPG상승 기조에도",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=227354",
+    "date": "2026-08-10",
+    "tags": [
+      "도시가스"
+    ],
+    "subtitle": "[에너지신문] 감소세를 보였던 국내 부탄캔 시장이 올해 상반기에는 반짝 상승세를 나타내는 모습을 보였다. 태양과 세안, 대륙제관 등 주요 업체가 시장을 주도하는 가운데 대성산업, 오제이씨, 화산를 중심으로는 생산량 증감이 엇갈린 것으로 나타났다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
+    "title": "발전소 위험구역에 AI 로봇 투입...‘무인 점검’ 본격화",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=227352",
+    "date": "2026-08-10",
+    "tags": [
+      "전력계통"
+    ],
+    "subtitle": "[에너지신문] 한국동서발전이 발전소 내부를 자율 이동하며 설비 이상과 화재, 안전 위험요인을 감시하는 물리 인공지능(Physical AI) 로봇 실증에 착수한다. 사람이 직접 발전설비를 순회하며 상태를 확인하는 기존 방식에서 벗어나 AI와 로봇을 활용, 상시·무인 감시체계를 구축하는 첫 단계로 주목받고 있다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
     "title": "국내 중소기업 기술로 인니 발전시장 판로 뚫는다",
     "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=227335",
     "date": "2026-08-10",
