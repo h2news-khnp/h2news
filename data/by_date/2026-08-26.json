@@ -161,6 +161,18 @@
     "is_important": 1
   },
   {
+    "source": "에너지신문",
+    "title": "AI·데이터센터가 바꾸는 가스시장…이제 ‘공급 안보’ 시대",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=227687",
+    "date": "2026-08-26",
+    "tags": [
+      "재생에너지",
+      "데이터센터"
+    ],
+    "subtitle": "[에너지신문] AI와 데이터센터 확산이 글로벌 천연가스 시장의 새로운 수요 변수로 부상하고 있다. 여기에 호르무즈 해협 위기까지 겹치면서 글로벌 가스시장은 단기적인 공급 충격과 장기적인 수요 증가라는 상반된 변화를 동시에 맞고 있다.",
+    "is_important": 1
+  },
+  {
     "source": "가스신문",
     "title": "한국지역난방공사, 탄소중립 위한 미활용열 사용 확대에 '박차'",
     "url": "https://www.gasnews.com/news/articleView.html?idxno=126505",
@@ -244,6 +256,17 @@
       "배터리"
     ],
     "subtitle": "[가스신문 = 주병국 기자] SK이노베이션과 분리막 사업 자회사인 SK아이이테크놀로지(이하 SKIET)가 합병한다. SK이노베이션과 SKIET는 25일 각각 이사회를 열고 양사간 합병 추진 안건을 의결했다고 밝혔다.",
+    "is_important": 1
+  },
+  {
+    "source": "가스신문",
+    "title": "SK가스, SK어드밴스드 흡수합병···프로판부터 프로필렌까지 밸류체인",
+    "url": "https://www.gasnews.com/news/articleView.html?idxno=126513",
+    "date": "2026-08-26",
+    "tags": [
+      "수소"
+    ],
+    "subtitle": "[가스신문 = 김재형 기자] LPG수입사 SK가스(대표 윤병석)가 PDH(프로판탈수소화) 자회사인 SK어드밴스드를 흡수합병하며 프로판부터 프로필렌 생산까지 이어지는 밸류체인 통합에 나선다. SK가스는 26일 이사회를 열고 SK어드밴드스와의 합병계약 체결 안건을 의결했다고 밝혔다.",
     "is_important": 1
   },
   {
