@@ -227,6 +227,8 @@ footer{padding:20px 16px 36px;text-align:center;color:var(--faint);font-size:11p
   }
   function sortArticles(list) {
     return list.slice().sort(function (a, b) {
+      // 날짜 내림차순이 먼저. 같은 날 안에서만 태그 수 -> 출처 -> 제목 순.
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
       if (b.tags.length !== a.tags.length) return b.tags.length - a.tags.length;
       var ra = PRIORITY.indexOf(a.source), rb = PRIORITY.indexOf(b.source);
       ra = ra < 0 ? 99 : ra; rb = rb < 0 ? 99 : rb;
