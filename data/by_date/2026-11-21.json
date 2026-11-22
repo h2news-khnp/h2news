@@ -29,6 +29,28 @@
   },
   {
     "source": "에너지신문",
+    "title": "화원-안좌 해저전력망 2차 증설...LS전선, 한전 사업 수주",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=229964",
+    "date": "2026-11-21",
+    "tags": [
+      "재생에너지"
+    ],
+    "subtitle": "[에너지신문] 전남 해남군 화원면과 신안군 안좌도를 잇는 해저전력망에 154kV 해저케이블 14km가 추가된다. 한전은 서남해안의 재생에너지 확대에 대응, 이 구간의 송전 용량을 늘린다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
+    "title": "햇빛소득마을, 착공 전 ‘금융추천서’...포화 배전선로 ESS 지원",
+    "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=229965",
+    "date": "2026-11-21",
+    "tags": [
+      "ESS"
+    ],
+    "subtitle": "[에너지신문] 햇빛소득마을이 정책자금 지원을 받으려면 공사에 앞서 금융지원 추천서를 발급받고, 지상권 등 발전설비를 설치할 부지의 사용권을 확보해야 한다. 배전선로에 여유가 없어 태양광발전소를 연결하기 어려운 곳에는 에너지저장장치(ESS) 설치를 지원하는 ‘커뮤니티솔라’ 사업이 추진된다.",
+    "is_important": 1
+  },
+  {
+    "source": "에너지신문",
     "title": "급전지시·실제 출력 한 화면에...에너닷 VPP 플랫폼 ‘GS 1등급’",
     "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=229963",
     "date": "2026-11-21",
